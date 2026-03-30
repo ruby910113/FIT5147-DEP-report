@@ -3,7 +3,7 @@
     "path": "C:/Users/ruby9/FIT5147-DEP/DEP_Wu_35717343.qmd",
     "project_path": "DEP_Wu_35717343.qmd",
     "type": "quarto_markdown",
-    "hash": "737885998",
+    "hash": "4121955661",
     "contents": "",
     "dirty": false,
     "created": 1774579657030.0,
@@ -12,15 +12,15 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "51,17",
-        "scrollLine": "44"
+        "cursorPosition": "93,158",
+        "scrollLine": "92"
     },
     "folds": "",
-    "lastKnownWriteTime": 1774839201,
+    "lastKnownWriteTime": 1774839635,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1774839201,
+    "last_content_update": 1774839635100,
     "read_only": false,
     "read_only_alternatives": []
 }
