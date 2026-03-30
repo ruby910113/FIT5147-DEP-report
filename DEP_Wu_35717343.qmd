@@ -91,7 +91,7 @@ For the housing finance data, I used the `Data1` sheet from both the owner-occup
 
 For the Wage Price Index data, I again used the `Data1` sheet and followed a similar process. I read the metadata rows separately, created temporary series column names, and extracted information such as state, wage measure, and unit from the ABS series descriptions. I then reshaped the data into long format and created year, quarter, and financial year variables. This produced a final tidy dataset called `wage_price_index`.
 
-Overall, the main purpose of this step was to convert the original Excel workbooks into consistent long-format datasets that could be compared more easily across states and time. This also made it easier to carry out the next stage of the project, which involved checking the structure, identifying missing values, reviewing inconsistencies, and cleaning the data where necessary. The tidy datasets and all data processing code used in this project are available in the [GitHub repository](https://github.com/ruby910113/FIT5147-DEP-report).
+Overall, the main purpose of this step was to convert the original Excel workbooks into consistent long-format datasets that could be compared more easily across states and time. This also made it easier to carry out the next stage of the project, which involved checking the structure, identifying missing values, reviewing inconsistencies, and cleaning the data where necessary. The tidy datasets and all data processing code used in this project are available in my [GitHub repository](https://github.com/ruby910113/FIT5147-DEP-report).
 
 ```{r}
 # File path for the overseas migration workbook
@@ -150,13 +150,13 @@ read_om_sheet <- function(sheet, state, range, file_path) {
     ) %>%
     pivot_longer(
       cols = matches("^\\d{4}-\\d{2}$"),
-      names_to = "year",
+      names_to = "financial_year",
       values_to = "net_overseas_migration"
     ) %>%
     mutate(
       net_overseas_migration = as.numeric(net_overseas_migration)
     ) %>%
-    select(state, sacc_code, country_of_birth, year, net_overseas_migration)
+    select(state, sacc_code, country_of_birth, financial_year, net_overseas_migration)
 }
 
 # Combine all sheets into one dataset
@@ -236,7 +236,7 @@ read_housing_finance_data1 <- function(file_path, loan_type) {
   hf_long <- hf_data %>%
     mutate(
       year = year(date),
-      quarter = quarter(date),
+      month = month(date),
       financial_year = if_else(
         month(date) >= 7,
         paste0(year(date), "-", str_sub(year(date) + 1, 3, 4)),
@@ -251,9 +251,8 @@ read_housing_finance_data1 <- function(file_path, loan_type) {
     left_join(hf_series_info, by = "series_col") %>%
     mutate(loan_type = loan_type) %>%
     select(
-      date,
       year,
-      quarter,
+      month,
       financial_year,
       state,
       loan_type,
@@ -341,7 +340,7 @@ wpi_series_info <- tibble(
 wage_price_index <- wpi_data %>%
   mutate(
     year = year(date),
-    quarter = quarter(date),
+    month = month(date),
     financial_year = if_else(
       month(date) >= 7,
       paste0(year(date), "-", str_sub(year(date) + 1, 3, 4)),
@@ -355,9 +354,8 @@ wage_price_index <- wpi_data %>%
   ) %>%
   left_join(wpi_series_info, by = "series_col") %>%
   select(
-    date,
     year,
-    quarter,
+    month,
     financial_year,
     state,
     wpi_measure,
