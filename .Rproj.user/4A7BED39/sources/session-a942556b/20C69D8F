@@ -1,9 +1,9 @@
 {
     "id": "20C69D8F",
-    "path": "C:/Users/ruby9/FIT5147-DEP/DEP1.qmd",
-    "project_path": "DEP1.qmd",
+    "path": "C:/Users/ruby9/FIT5147-DEP/DEP_Wu_35717343.qmd",
+    "project_path": "DEP_Wu_35717343.qmd",
     "type": "quarto_markdown",
-    "hash": "0",
+    "hash": "737885998",
     "contents": "",
     "dirty": false,
     "created": 1774579657030.0,
@@ -16,11 +16,11 @@
         "scrollLine": "44"
     },
     "folds": "",
-    "lastKnownWriteTime": 1774837449,
+    "lastKnownWriteTime": 1774839201,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1774837449463,
+    "last_content_update": 1774839201,
     "read_only": false,
     "read_only_alternatives": []
 }
