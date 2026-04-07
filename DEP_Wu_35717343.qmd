@@ -83,6 +83,7 @@ library(tibble)
 library(lubridate)
 library(knitr)
 library(kableExtra)
+library(forcats)
 ```
 
 This project uses four open datasets from the Australian Bureau of Statistics (ABS): Net Overseas Migration by Country of Birth, Owner-Occupier Lending, Investor Lending, and the Wage Price Index. The direct download links are provided below:
@@ -299,6 +300,50 @@ data_time_summary %>%
     caption = "Summary of time structure across the datasets",
     col.names = c("Dataset", "Start (Year/Month)", "End (Year/Month)", "Frequency", "Time period")) %>%
   kable_styling(full_width = FALSE)
+```
+
+As shown in @fig-time-coverage, the three datasets have different time ranges. Housing finance and Wage price index start earlier than Overseas migration, so the full periods do not fully match. To make the comparison fairer, I focused on the common comparison period shown in grey, which is the overlapping financial-year range shared by all three datasets.
+
+```{r}
+#| label: fig-time-coverage
+#| fig-cap: Financial-year coverage and common comparison period across the datasets
+
+period_df <- bind_rows(
+  overseas_migration %>%
+    distinct(financial_year) %>%
+    summarise(dataset = "Overseas migration", start_fy = min(financial_year), end_fy = max(financial_year)),
+  
+  housing_finance %>%
+    distinct(financial_year) %>%
+    summarise(dataset = "Housing finance", start_fy = min(financial_year), end_fy = max(financial_year)),
+  
+  wage_price_index %>%
+    distinct(financial_year) %>%
+    summarise(dataset = "Wage price index", start_fy = min(financial_year), end_fy = max(financial_year))) %>%
+  mutate(start_num = as.numeric(str_sub(start_fy, 1, 4)), end_num = as.numeric(str_sub(end_fy, 1, 4)))
+
+overlap_start <- max(period_df$start_num)
+overlap_end <- min(period_df$end_num)
+
+fy_breaks <- seq(floor(min(period_df$start_num)), ceiling(max(period_df$end_num)), by = 2)
+
+fy_labels <- paste0(
+  fy_breaks, "-",
+  str_sub(fy_breaks + 1, 3, 4))
+
+ggplot(period_df, aes(y = fct_rev(dataset))) +
+  annotate("rect", xmin = overlap_start, xmax = overlap_end, ymin = -Inf, ymax = Inf, fill = "grey80", alpha = 0.5) +
+  geom_segment(
+    aes(x = start_num, xend = end_num, yend = fct_rev(dataset), colour = dataset),
+    linewidth = 1.4) +
+  geom_point(aes(x = start_num, colour = dataset), size = 3) +
+  geom_point(aes(x = end_num, colour = dataset), size = 3) +
+  annotate("text", x = (overlap_start + overlap_end) / 2, y = 3.35, label = "Grey area: common comparison period", size = 3.8,
+    colour = "grey20") +
+  scale_x_continuous(breaks = fy_breaks, labels = fy_labels, expand = expansion(mult = c(0.02, 0.02))) +
+  labs(title = "Financial-year coverage across the datasets", x = "Financial year", y = NULL) +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.major.y = element_blank(), panel.grid.minor = element_blank(), legend.position = "none")
 ```
 
 
