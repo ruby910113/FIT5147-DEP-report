@@ -255,10 +255,10 @@ rm(wpi_data, wpi_meta, wpi_series_info)
 
 ## Creating a Common Financial Year Structure
 
-As shown in @tbl-time-summary, Housing finance and Wage price index are quarterly datasets recorded using calendar year and month, whereas Overseas migration is recorded by financial year. To make the three datasets more comparable, I created a financial year variable for the quarterly datasets based on the quarter-ending months of September, December, March, and June.
+As shown in @tbl-time-summary, Housing finance and Wage price index are quarterly datasets recorded using calendar year and month, while Overseas migration is recorded by financial year. To make the three datasets easier to compare, I created a financial year variable for the quarterly datasets based on the quarter-ending months of September, December, March, and June. The datasets also have different time ranges, since Housing finance and Wage price index start earlier than Overseas migration. Therefore, I restricted all three datasets to the shared financial-year period from 2004-05 to 2024-25 before carrying out the analysis.
 
 ```{r}
-#| label: tbl-time-summury
+#| label: tbl-time-summary
 #| tbl-cap: Summary of time structure across the datasets
 
 data_time_summary <- bind_rows(
@@ -302,48 +302,51 @@ data_time_summary %>%
   kable_styling(full_width = FALSE)
 ```
 
-As shown in @fig-time-coverage, the three datasets have different time ranges. Housing finance and Wage price index start earlier than Overseas migration, so the full periods do not fully match. To make the comparison fairer, I focused on the common comparison period shown in grey, which is the overlapping financial-year range shared by all three datasets.
+```{r}
+overseas_migration <- overseas_migration %>%
+  filter(financial_year >= "2004-05",
+         financial_year <= "2024-25")
+
+housing_finance <- housing_finance %>%
+  filter(financial_year >= "2004-05",
+         financial_year <= "2024-25")
+
+wage_price_index <- wage_price_index %>%
+  filter(financial_year >= "2004-05",
+         financial_year <= "2024-25")
+```
+
+## Understanding Missing Values in the Housing Finance Data
+
+@tbl-hf-missing-summary shows that the housing finance dataset is largely complete across the common comparison period, except for the Investor Number series. While Investor Value, Owner-occupier Number, and Owner-occupier Value are all available from 2004-05 to 2024-25, Investor Number only becomes available from 2019-20 onward. This indicates that the observed missing values are structural rather than accidental, and are due to the later start of this series in the source data.
 
 ```{r}
-#| label: fig-time-coverage
-#| fig-cap: Financial-year coverage and common comparison period across the datasets
+#| label: tbl-hf-series-start
 
-period_df <- bind_rows(
-  overseas_migration %>%
-    distinct(financial_year) %>%
-    summarise(dataset = "Overseas migration", start_fy = min(financial_year), end_fy = max(financial_year)),
-  
-  housing_finance %>%
-    distinct(financial_year) %>%
-    summarise(dataset = "Housing finance", start_fy = min(financial_year), end_fy = max(financial_year)),
-  
-  wage_price_index %>%
-    distinct(financial_year) %>%
-    summarise(dataset = "Wage price index", start_fy = min(financial_year), end_fy = max(financial_year))) %>%
-  mutate(start_num = as.numeric(str_sub(start_fy, 1, 4)), end_num = as.numeric(str_sub(end_fy, 1, 4)))
+hf_missing_summary <- housing_finance %>%
+  group_by(loan_type, value_type) %>%
+  summarise(
+    first_available = min(financial_year[!is.na(housing_finance)], na.rm = TRUE),
+    last_available = max(financial_year[!is.na(housing_finance)], na.rm = TRUE),
+    n_missing = sum(is.na(housing_finance)),
+    n_available = sum(!is.na(housing_finance)),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    loan_type = recode(
+      loan_type,
+      owner_occupier = "Owner-occupier",
+      investor = "Investor"
+    )
+  )
 
-overlap_start <- max(period_df$start_num)
-overlap_end <- min(period_df$end_num)
-
-fy_breaks <- seq(floor(min(period_df$start_num)), ceiling(max(period_df$end_num)), by = 2)
-
-fy_labels <- paste0(
-  fy_breaks, "-",
-  str_sub(fy_breaks + 1, 3, 4))
-
-ggplot(period_df, aes(y = fct_rev(dataset))) +
-  annotate("rect", xmin = overlap_start, xmax = overlap_end, ymin = -Inf, ymax = Inf, fill = "grey80", alpha = 0.5) +
-  geom_segment(
-    aes(x = start_num, xend = end_num, yend = fct_rev(dataset), colour = dataset),
-    linewidth = 1.4) +
-  geom_point(aes(x = start_num, colour = dataset), size = 3) +
-  geom_point(aes(x = end_num, colour = dataset), size = 3) +
-  annotate("text", x = (overlap_start + overlap_end) / 2, y = 3.35, label = "Grey area: common comparison period", size = 3.8,
-    colour = "grey20") +
-  scale_x_continuous(breaks = fy_breaks, labels = fy_labels, expand = expansion(mult = c(0.02, 0.02))) +
-  labs(title = "Financial-year coverage across the datasets", x = "Financial year", y = NULL) +
-  theme_minimal(base_size = 12) +
-  theme(panel.grid.major.y = element_blank(), panel.grid.minor = element_blank(), legend.position = "none")
+hf_missing_summary %>%
+  kable(
+    caption = "Series start and end dates in the original housing finance workbooks", 
+    col.names = c("Loan type", "Value type", "First available FY", "Last available FY",
+                  "Missing values", "Available values")
+  ) %>%
+  kable_styling(full_width = FALSE)
 ```
 
 
