@@ -66,9 +66,9 @@ I am personally motivated to study this topic because, as an international stude
 
 This report addresses the following questions:
 
-1. Does the growth of housing debt align with wage growth across Australian states, and what is the current debt structure?
-2. How does the regional distribution of immigrants relate to local wages and housing costs?
-3. Is investor lending activity driven by migration demand or market speculation?
+1.  Does the growth of housing debt align with wage growth across Australian states, and what is the current debt structure?
+2.  How does the regional distribution of immigrants relate to local wages and housing costs?
+3.  Is investor lending activity driven by migration demand or market speculation?
 
 # Data Wrangling and Checking
 
@@ -81,7 +81,16 @@ library(purrr)
 library(stringr)
 library(tibble)
 library(lubridate)
+library(knitr)
+library(kableExtra)
 ```
+
+This project uses four open datasets from the Australian Bureau of Statistics (ABS): Net Overseas Migration by Country of Birth, Owner-Occupier Lending, Investor Lending, and the Wage Price Index. The direct download links are provided below:
+
+-   [Net Overseas Migration by Country of Birth](https://www.abs.gov.au/statistics/people/population/overseas-migration/latest-release/34070DO001_202425.xlsx)
+-   [Owner-Occupier Lending](https://www.abs.gov.au/statistics/economy/finance/lending-indicators/latest-release/560104.xlsx)
+-   [Investor Lending](https://www.abs.gov.au/statistics/economy/finance/lending-indicators/latest-release/560114.xlsx)
+-   [Wage Price Index](https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/wage-price-index-australia/latest-release/634502b.xlsx)
 
 Before checking and cleaning the data, I first transformed the three ABS datasets into tidy formats that were easier to compare and analyse in R. Although all three sources were downloaded as Excel workbooks, they had different internal structures and could not be used directly for analysis.
 
@@ -100,32 +109,13 @@ om_file_path <- "data/34070DO001_202425.xlsx"
 # Sheet names, state names, and row ranges
 om_sheet_info <- tibble(
   sheet = paste0("Table 1.", 1:9),
-  state = c(
-    "Australia",
-    "New South Wales",
-    "Victoria",
-    "Queensland",
-    "South Australia",
-    "Western Australia",
-    "Tasmania",
-    "Northern Territory",
-    "Australian Capital Territory"
-  ),
-  range = c(
-    "A14:W262",
-    rep("A13:W261", 8)
-  )
-)
+  state = c("Australia", "New South Wales", "Victoria", "Queensland", "South Australia", "Western Australia", "Tasmania", "Northern Territory", "Australian Capital Territory"),
+  range = c("A14:W262", rep("A13:W261", 8)))
 
 # Read one overseas migration sheet and tidy it
 read_om_sheet <- function(sheet, state, range, file_path) {
   
-  om_raw <- read_excel(
-    path = file_path,
-    sheet = sheet,
-    range = range,
-    col_names = FALSE
-  )
+  om_raw <- read_excel(path = file_path, sheet = sheet, range = range, col_names = FALSE)
   
   # Use the first row as column names
   om_col_names <- om_raw[1, ] %>%
@@ -144,26 +134,17 @@ read_om_sheet <- function(sheet, state, range, file_path) {
   names(om_data)[-(1:2)] <- om_clean_years
   
   om_data %>%
-    mutate(
-      state = state,
-      sacc_code = str_pad(as.character(sacc_code), width = 4, pad = "0")
-    ) %>%
-    pivot_longer(
-      cols = matches("^\\d{4}-\\d{2}$"),
-      names_to = "financial_year",
-      values_to = "net_overseas_migration"
-    ) %>%
-    mutate(
-      net_overseas_migration = as.numeric(net_overseas_migration)
-    ) %>%
+    mutate(state = state,
+           sacc_code = str_pad(as.character(sacc_code), width = 4, pad = "0")) %>%
+    pivot_longer(cols = matches("^\\d{4}-\\d{2}$"),
+                 names_to = "financial_year",
+                 values_to = "net_overseas_migration") %>%
+    mutate(net_overseas_migration = as.numeric(net_overseas_migration)) %>%
     select(state, sacc_code, country_of_birth, financial_year, net_overseas_migration)
 }
 
 # Combine all sheets into one dataset
-overseas_migration <- pmap_dfr(
-  om_sheet_info,
-  \(sheet, state, range) read_om_sheet(sheet, state, range, om_file_path)
-) %>%
+overseas_migration <- pmap_dfr(om_sheet_info, \(sheet, state, range) read_om_sheet(sheet, state, range, om_file_path)) %>%
   filter(!is.na(country_of_birth))
 
 rm(om_sheet_info)
@@ -174,21 +155,10 @@ rm(om_sheet_info)
 read_housing_finance_data1 <- function(file_path, loan_type) {
   
   # Read the metadata rows
-  hf_meta <- read_excel(
-    path = file_path,
-    sheet = "Data1",
-    n_max = 10,
-    col_names = FALSE
-  )
+  hf_meta <- read_excel(path = file_path, sheet = "Data1", n_max = 10, col_names = FALSE)
   
   # Read the time series data
-  hf_data <- read_excel(
-    path = file_path,
-    sheet = "Data1",
-    skip = 10,
-    col_names = FALSE,
-    col_types = c("date", rep("numeric", ncol(hf_meta) - 1))
-  )
+  hf_data <- read_excel(path = file_path, sheet = "Data1", skip = 10, col_names = FALSE, col_types = c("date", rep("numeric", ncol(hf_meta) - 1)))
   
   # Create temporary column names
   series_cols <- paste0("series_", seq_len(ncol(hf_data) - 1))
@@ -203,64 +173,28 @@ read_housing_finance_data1 <- function(file_path, loan_type) {
     unit = as.character(unlist(hf_meta[2, -1])),
     series_type = as.character(unlist(hf_meta[3, -1])),
     data_type = as.character(unlist(hf_meta[4, -1])),
-    frequency = as.character(unlist(hf_meta[5, -1]))
-  ) %>%
-    separate(
-      full_name,
-      into = c(
-        "sector",
-        "collection",
-        "borrower_type",
-        "dwelling_type",
-        "state",
-        "measure",
-        "value_type",
-        "blank"
-      ),
-      sep = "\\s*;\\s*",
-      extra = "drop",
-      fill = "right"
-    ) %>%
-    select(
-      series_col,
-      state,
-      borrower_type,
-      dwelling_type,
-      measure,
-      value_type,
-      unit,
-      series_type
-    )
+    frequency = as.character(unlist(hf_meta[5, -1]))) %>%
+    separate(full_name,
+             into = c("sector", "collection", "borrower_type", "dwelling_type", "state", "measure", "value_type", "blank"),
+             sep = "\\s*;\\s*",
+             extra = "drop",
+             fill = "right") %>%
+    select(series_col, state, borrower_type, dwelling_type, measure, value_type, unit, series_type)
   
   # Turn the data into long format
   hf_long <- hf_data %>%
-    mutate(
-      year = year(date),
-      month = month(date),
-      financial_year = if_else(
-        month(date) >= 7,
-        paste0(year(date), "-", str_sub(year(date) + 1, 3, 4)),
-        paste0(year(date) - 1, "-", str_sub(year(date), 3, 4))
-      )
-    ) %>%
-    pivot_longer(
-      cols = starts_with("series_"),
-      names_to = "series_col",
-      values_to = "housing_finance"
-    ) %>%
+    mutate(year = year(date),
+           month = month(date),
+           financial_year = if_else(
+             month(date) >= 7,
+             paste0(year(date), "-", str_sub(year(date) + 1, 3, 4)),
+             paste0(year(date) - 1, "-", str_sub(year(date), 3, 4)))) %>%
+    pivot_longer(cols = starts_with("series_"),
+                 names_to = "series_col",
+                 values_to = "housing_finance") %>%
     left_join(hf_series_info, by = "series_col") %>%
     mutate(loan_type = loan_type) %>%
-    select(
-      year,
-      month,
-      financial_year,
-      state,
-      loan_type,
-      value_type,
-      unit,
-      series_type,
-      housing_finance
-    )
+    select(year, month, financial_year, state, loan_type, value_type, unit, series_type, housing_finance)
   
   hf_long
 }
@@ -268,14 +202,9 @@ read_housing_finance_data1 <- function(file_path, loan_type) {
 # Combine owner-occupier and investor data
 housing_finance <- bind_rows(
   read_housing_finance_data1(
-    file_path = "data/560104.xlsx",
-    loan_type = "owner_occupier"
-  ),
+    file_path = "data/560104.xlsx", loan_type = "owner_occupier"),
   read_housing_finance_data1(
-    file_path = "data/560114.xlsx",
-    loan_type = "investor"
-  )
-)
+    file_path = "data/560114.xlsx", loan_type = "investor"))
 ```
 
 ```{r}
@@ -283,21 +212,10 @@ housing_finance <- bind_rows(
 wpi_file_path <- "data/634502b.xlsx"
 
 # Read the metadata rows
-wpi_meta <- read_excel(
-  path = wpi_file_path,
-  sheet = "Data1",
-  n_max = 10,
-  col_names = FALSE
-)
+wpi_meta <- read_excel(path = wpi_file_path, sheet = "Data1", n_max = 10, col_names = FALSE)
 
 # Read the actual data
-wpi_data <- read_excel(
-  path = wpi_file_path,
-  sheet = "Data1",
-  skip = 10,
-  col_names = FALSE,
-  col_types = c("date", rep("numeric", ncol(wpi_meta) - 1))
-)
+wpi_data <- read_excel(path = wpi_file_path, sheet = "Data1", skip = 10, col_names = FALSE, col_types = c("date", rep("numeric", ncol(wpi_meta) - 1)))
 
 # Create temporary column names
 series_cols <- paste0("series_", seq_len(ncol(wpi_data) - 1))
@@ -309,62 +227,80 @@ names(wpi_data) <- c("date", series_cols)
 wpi_series_info <- tibble(
   series_col = series_cols,
   full_name = as.character(unlist(wpi_meta[1, -1])),
-  unit = as.character(unlist(wpi_meta[2, -1]))
-) %>%
-  separate(
-    full_name,
-    into = c(
-      "wpi_measure",
-      "pay_type",
-      "state",
-      "sector",
-      "industry",
-      "blank"
-    ),
-    sep = "\\s*;\\s*",
-    extra = "drop",
-    fill = "right"
-  ) %>%
+  unit = as.character(unlist(wpi_meta[2, -1]))) %>%
+  separate(full_name, into = c("wpi_measure", "pay_type", "state", "sector", "industry", "blank"), sep = "\\s*;\\s*", extra = "drop", fill = "right") %>%
   mutate(
     across(c(wpi_measure, pay_type, state, sector, industry), str_squish),
     wpi_measure = case_when(
       wpi_measure == "Quarterly Index" ~ "index",
       wpi_measure == "Percentage Change from Previous Quarter" ~ "pct_change_prev_quarter",
       wpi_measure == "Percentage Change from Corresponding Quarter of Previous Year" ~ "pct_change_prev_year",
-      TRUE ~ wpi_measure
-    )
-  ) %>%
+      TRUE ~ wpi_measure)) %>%
   select(series_col, state, wpi_measure, unit)
 
 # Turn the data into long format
 wage_price_index <- wpi_data %>%
-  mutate(
-    year = year(date),
-    month = month(date),
-    financial_year = if_else(
-      month(date) >= 7,
-      paste0(year(date), "-", str_sub(year(date) + 1, 3, 4)),
-      paste0(year(date) - 1, "-", str_sub(year(date), 3, 4))
-    )
-  ) %>%
-  pivot_longer(
-    cols = starts_with("series_"),
-    names_to = "series_col",
-    values_to = "wage_price_index"
-  ) %>%
+  mutate(year = year(date), month = month(date), 
+         financial_year = if_else(
+           month(date) >= 7,
+           paste0(year(date), "-", str_sub(year(date) + 1, 3, 4)),
+           paste0(year(date) - 1, "-", str_sub(year(date), 3, 4)))) %>%
+  pivot_longer(cols = starts_with("series_"), names_to = "series_col", values_to = "wage_price_index") %>%
   left_join(wpi_series_info, by = "series_col") %>%
-  select(
-    year,
-    month,
-    financial_year,
-    state,
-    wpi_measure,
-    unit,
-    wage_price_index
-  )
+  select(year, month, financial_year, state, wpi_measure, unit, wage_price_index)
 
 rm(wpi_data, wpi_meta, wpi_series_info)
 ```
+
+## Creating a Common Financial Year Structure
+
+As shown in @tbl-time-summary, Housing finance and Wage price index are quarterly datasets recorded using calendar year and month, whereas Overseas migration is recorded by financial year. To make the three datasets more comparable, I created a financial year variable for the quarterly datasets based on the quarter-ending months of September, December, March, and June.
+
+```{r}
+#| label: tbl-time-summury
+#| tbl-cap: Summary of time structure across the datasets
+
+data_time_summary <- bind_rows(
+  tibble(
+    dataset = "Overseas migration",
+    start_ym = NA_character_,
+    end_ym = NA_character_,
+    frequency = "Annual",
+    time_period = paste0(
+      min(overseas_migration$financial_year), " to ",
+      max(overseas_migration$financial_year))),
+  
+  housing_finance %>%
+    distinct(year, month, financial_year) %>%
+    mutate(date = make_date(year, month, 1)) %>%
+    summarise(
+      dataset = "Housing finance",
+      start_ym = paste0(year(min(date)), "/", month(min(date))),
+      end_ym = paste0(year(max(date)), "/", month(max(date))),
+      frequency = "Quarterly",
+      time_period = paste0(
+        min(financial_year), " to ",
+        max(financial_year))),
+  
+  wage_price_index %>%
+    distinct(year, month, financial_year) %>%
+    mutate(date = make_date(year, month, 1)) %>%
+    summarise(
+      dataset = "Wage price index",
+      start_ym = paste0(year(min(date)), "/", month(min(date))),
+      end_ym = paste0(year(max(date)), "/", month(max(date))),
+      frequency = "Quarterly",
+      time_period = paste0(
+        min(financial_year), " to ",
+        max(financial_year))))
+
+data_time_summary %>%
+  kable(
+    caption = "Summary of time structure across the datasets",
+    col.names = c("Dataset", "Start (Year/Month)", "End (Year/Month)", "Frequency", "Time period")) %>%
+  kable_styling(full_width = FALSE)
+```
+
 
 # Data Exploration
 
