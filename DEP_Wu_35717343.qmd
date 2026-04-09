@@ -387,7 +387,7 @@ Overall, the data wrangling and checking steps suggest that the three datasets w
 
 # Data Exploration
 
-
+This section explores the **relationships between housing lending, overseas migration, and wage growth across Australian states** using a series of state-level visual comparisons. Because the original datasets use different units and frequencies, the analysis focuses on financial-year summaries, indexed trends, and composition patterns to support more meaningful comparisons across datasets. To make the analysis consistent, all three datasets were restricted to the shared financial-year period from **2004-05 to 2024-25**. 
 
 # Conclusion
 
