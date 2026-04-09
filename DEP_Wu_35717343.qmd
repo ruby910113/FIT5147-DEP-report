@@ -84,6 +84,8 @@ library(lubridate)
 library(knitr)
 library(kableExtra)
 library(forcats)
+library(ggbeeswarm)
+library(patchwork)
 ```
 
 This project uses four open datasets from the Australian Bureau of Statistics (ABS): Net Overseas Migration by Country of Birth, Owner-Occupier Lending, Investor Lending, and the Wage Price Index. The direct download links are provided below:
@@ -264,12 +266,10 @@ As shown in @tbl-time-summary, Housing finance and Wage price index are quarterl
 data_time_summary <- bind_rows(
   tibble(
     dataset = "Overseas migration",
-    start_ym = NA_character_,
-    end_ym = NA_character_,
+    start_ym = "Not applicable",
+    end_ym = "Not applicable",
     frequency = "Annual",
-    time_period = paste0(
-      min(overseas_migration$financial_year), " to ",
-      max(overseas_migration$financial_year))),
+    time_period = paste0(min(overseas_migration$financial_year), " to ", max(overseas_migration$financial_year))),
   
   housing_finance %>%
     distinct(year, month, financial_year) %>%
@@ -279,9 +279,7 @@ data_time_summary <- bind_rows(
       start_ym = paste0(year(min(date)), "/", month(min(date))),
       end_ym = paste0(year(max(date)), "/", month(max(date))),
       frequency = "Quarterly",
-      time_period = paste0(
-        min(financial_year), " to ",
-        max(financial_year))),
+      time_period = paste0(min(financial_year), " to ", max(financial_year))),
   
   wage_price_index %>%
     distinct(year, month, financial_year) %>%
@@ -291,14 +289,11 @@ data_time_summary <- bind_rows(
       start_ym = paste0(year(min(date)), "/", month(min(date))),
       end_ym = paste0(year(max(date)), "/", month(max(date))),
       frequency = "Quarterly",
-      time_period = paste0(
-        min(financial_year), " to ",
-        max(financial_year))))
+      time_period = paste0(min(financial_year), " to ", max(financial_year))))
 
 data_time_summary %>%
-  kable(
-    caption = "Summary of time structure across the datasets",
-    col.names = c("Dataset", "Start (Year/Month)", "End (Year/Month)", "Frequency", "Time period")) %>%
+  kable(caption = "Summary of time structure across the datasets",
+        col.names = c("Dataset", "Start (Year/Month)", "End (Year/Month)", "Frequency", "Time period")) %>%
   kable_styling(full_width = FALSE)
 ```
 
@@ -318,39 +313,81 @@ wage_price_index <- wage_price_index %>%
 
 ## Understanding Missing Values in the Housing Finance Data
 
-@tbl-hf-missing-summary shows that the housing finance dataset is largely complete across the common comparison period, except for the Investor Number series. While Investor Value, Owner-occupier Number, and Owner-occupier Value are all available from 2004-05 to 2024-25, Investor Number only becomes available from 2019-20 onward. This indicates that the observed missing values are structural rather than accidental, and are due to the later start of this series in the source data.
+@tbl-hf-missing-summary shows that the housing finance dataset is largely complete, except for the Investor Number series, which is only available from 2019-20 onward. This suggests that the missing values are structural rather than accidental, since the series begins later in the original source data. Therefore, these values were not imputed, and any analysis using Investor Number should be limited to 2019-20 onward or interpreted cautiously when compared with the longer series.
 
 ```{r}
-#| label: tbl-hf-series-start
+#| label: tbl-hf-missing-summary
 
 hf_missing_summary <- housing_finance %>%
   group_by(loan_type, value_type) %>%
   summarise(
-    first_available = min(financial_year[!is.na(housing_finance)], na.rm = TRUE),
-    last_available = max(financial_year[!is.na(housing_finance)], na.rm = TRUE),
+    first_available = min(financial_year[!is.na(housing_finance)]),
+    last_available = max(financial_year[!is.na(housing_finance)]),
     n_missing = sum(is.na(housing_finance)),
     n_available = sum(!is.na(housing_finance)),
-    .groups = "drop"
-  ) %>%
+    .groups = "drop") %>%
   mutate(
     loan_type = recode(
       loan_type,
       owner_occupier = "Owner-occupier",
-      investor = "Investor"
-    )
-  )
+      investor = "Investor"))
 
 hf_missing_summary %>%
-  kable(
-    caption = "Series start and end dates in the original housing finance workbooks", 
-    col.names = c("Loan type", "Value type", "First available FY", "Last available FY",
-                  "Missing values", "Available values")
-  ) %>%
+  kable(caption = "Series start and end dates in the original housing finance workbooks", col.names = c("Loan type", "Value type", "First FY", "Last FY", "Missing values", "Available values")) %>%
   kable_styling(full_width = FALSE)
 ```
 
+## Checking Distribution Shapes Across the Datasets
+
+@fig-distribution shows no clear sign of major data errors after the asinh transformation. The housing finance data are right-skewed, but the distribution is still fairly smooth, so this looks more like normal variation than unusual mistakes. The overseas migration data are strongly concentrated around zero, with longer tails on both sides, which suggests that many observations are small or zero while some are much larger in either the positive or negative direction. The wage price index data show a clear bimodal shape, but this is likely due to combining index values and percentage change measures in the same dataset, rather than indicating abnormal observations. Overall, this check suggests that the main issue is differences in data structure across the datasets, not obvious errors in the values.
+
+```{r}
+#| label: fig-distribution
+#| fig-height: 6
+#| fig-width: 8
+
+distribution_data <- bind_rows(
+  overseas_migration %>%
+    transmute(
+      dataset = "Overseas migration",
+      value = net_overseas_migration),
+  housing_finance %>%
+    transmute(
+      dataset = "Housing finance",
+      value = housing_finance),
+  wage_price_index %>%
+    transmute(
+      dataset = "Wage price index",
+      value = wage_price_index)) %>%
+  filter(!is.na(value)) %>%
+  mutate(
+    value_asinh = asinh(value),
+    dataset = factor(
+      dataset,
+      levels = c("Housing finance", "Overseas migration", "Wage price index")))
+
+ggplot(distribution_data, aes(x = value_asinh, fill = dataset)) +
+  geom_density(alpha = 0.6, colour = "black", linewidth = 0.3) +
+  facet_wrap(~ dataset, ncol = 1, scales = "free") +
+  labs(
+    title = "Distributions of asinh-transformed values across the three datasets",
+    x = "asinh(value)",
+    y = "Density") +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    strip.text = element_text(face = "bold"),
+    panel.grid.minor = element_blank())
+```
+
+## Summary of Data Checking
+
+Overall, the data wrangling and checking steps suggest that the three datasets were successfully converted into tidy formats and aligned to a common financial-year structure for comparison. No major data quality problems were identified, aside from the structurally missing Investor Number series and the expected differences in measurement scales across the datasets. These issues were taken into account in later analysis, so the cleaned data provide a suitable basis for exploring relationships between migration, housing lending, and wage growth across Australian states.
 
 # Data Exploration
+
+
 
 # Conclusion
 
