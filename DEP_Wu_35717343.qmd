@@ -66,7 +66,7 @@ I am personally motivated to study this topic because, as an international stude
 
 This report addresses the following questions:
 
-1.  Does the growth of housing debt align with wage growth across Australian states, and what is the current debt structure?
+1.  Does the growth of housing lending align with wage growth across Australian states, and how has the lending structure changed over time?
 2.  How does the regional distribution of immigrants relate to local wages and housing costs?
 3.  Is investor lending activity driven by migration demand or market speculation?
 
@@ -86,6 +86,8 @@ library(kableExtra)
 library(forcats)
 library(ggbeeswarm)
 library(patchwork)
+library(scales)
+library(slider)
 ```
 
 This project uses four open datasets from the Australian Bureau of Statistics (ABS): Net Overseas Migration by Country of Birth, Owner-Occupier Lending, Investor Lending, and the Wage Price Index. The direct download links are provided below:
@@ -387,7 +389,212 @@ Overall, the data wrangling and checking steps suggest that the three datasets w
 
 # Data Exploration
 
-This section explores the **relationships between housing lending, overseas migration, and wage growth across Australian states** using a series of state-level visual comparisons. Because the original datasets use different units and frequencies, the analysis focuses on financial-year summaries, indexed trends, and composition patterns to support more meaningful comparisons across datasets. To make the analysis consistent, all three datasets were restricted to the shared financial-year period from **2004-05 to 2024-25**. 
+This section explores the **relationships between housing lending, overseas migration, and wage growth across Australian states** using financial-year summaries and composition measures from **2004-05 to 2024-25**.
+
+## Does the growth of housing lending align with wage growth across Australian states, and how has the lending structure changed over time?
+
+To address the first research question, I compared annual housing lending growth with annual wage growth across Australian states from 2005-06 to 2024-25. Housing finance was aggregated to annual state-level totals using the Original Value series, while wage growth was calculated from the state-level Wage Price Index. I then examined whether housing lending and wage growth moved together over time, and how the investor share of total lending value changed across states.
+
+```{r}
+#| label: q1-prepare-data
+#| include: false
+
+state_levels <- c(
+  "New South Wales",
+  "Victoria",
+  "Queensland",
+  "South Australia",
+  "Western Australia",
+  "Tasmania",
+  "Northern Territory",
+  "Australian Capital Territory")
+
+state_colors <- c(
+  "New South Wales" = "#1b9e77",
+  "Victoria" = "#d95f02",
+  "Queensland" = "#7570b3",
+  "South Australia" = "#e7298a",
+  "Western Australia" = "#66a61e",
+  "Tasmania" = "#e6ab02",
+  "Northern Territory" = "#a6761d",
+  "Australian Capital Territory" = "#666666")
+
+# Wage growth: state-level and national-level
+wpi_state_fy <- wage_price_index %>%
+  filter(state %in% state_levels, wpi_measure == "index") %>%
+  group_by(financial_year, state) %>%
+  summarise(annual_wpi = mean(wage_price_index, na.rm = TRUE), .groups = "drop") %>%
+  arrange(state, financial_year) %>%
+  group_by(state) %>%
+  mutate(wage_growth_pct = (annual_wpi / lag(annual_wpi) - 1) * 100, start_year = as.integer(str_sub(financial_year, 1, 4))) %>%
+  ungroup()
+
+wpi_nat_fy <- wage_price_index %>%
+  filter(state == "Australia", wpi_measure == "index") %>%
+  group_by(financial_year) %>%
+  summarise(annual_wpi = mean(wage_price_index, na.rm = TRUE), .groups = "drop") %>%
+  arrange(financial_year) %>%
+  mutate(wage_growth_pct = (annual_wpi / lag(annual_wpi) - 1) * 100, start_year = as.integer(str_sub(financial_year, 1, 4)))
+
+# Housing lending growth: state-level and national-level
+hf_state_fy <- housing_finance %>%
+  filter(state %in% state_levels, value_type == "Value", series_type == "Original") %>%
+  group_by(financial_year, state) %>%
+  summarise(total_lending = sum(housing_finance, na.rm = TRUE), .groups = "drop") %>%
+  arrange(state, financial_year) %>%
+  group_by(state) %>%
+  mutate(lending_growth_pct = (total_lending / lag(total_lending) - 1) * 100, start_year = as.integer(str_sub(financial_year, 1, 4))) %>%
+  ungroup()
+
+hf_nat_fy <- housing_finance %>%
+  filter(state == "Total Australia", value_type == "Value", series_type == "Original") %>%
+  group_by(financial_year) %>%
+  summarise(total_lending = sum(housing_finance, na.rm = TRUE), .groups = "drop") %>%
+  arrange(financial_year) %>%
+  mutate(lending_growth_pct = (total_lending / lag(total_lending) - 1) * 100, start_year = as.integer(str_sub(financial_year, 1, 4)))
+
+# Combined data for Figure 1
+overall_growth_states <- bind_rows(
+  wpi_state_fy %>%
+    transmute(financial_year, start_year, state, series = "Wage growth", growth_pct = wage_growth_pct),
+  hf_state_fy %>%
+    transmute(financial_year, start_year, state, series = "Housing lending growth", growth_pct = lending_growth_pct)) %>%
+  filter(!is.na(growth_pct))
+
+overall_growth_nat <- bind_rows(
+  wpi_nat_fy %>%
+    transmute(financial_year, start_year, series = "Wage growth", growth_pct = wage_growth_pct),
+  hf_nat_fy %>%
+    transmute(financial_year, start_year, series = "Housing lending growth", growth_pct = lending_growth_pct)) %>%
+  filter(!is.na(growth_pct))
+
+# Investor share of total housing lending value
+investor_share_value_state <- housing_finance %>%
+  filter(state %in% state_levels, series_type == "Original", value_type == "Value") %>%
+  group_by(financial_year, state, loan_type) %>%
+  summarise(
+    annual_total = sum(housing_finance, na.rm = TRUE),
+    .groups = "drop") %>%
+  group_by(financial_year, state) %>%
+  mutate(share = annual_total / sum(annual_total)) %>%
+  ungroup() %>%
+  filter(loan_type == "investor") %>%
+  mutate(start_year = as.integer(str_sub(financial_year, 1, 4)))
+
+investor_share_value_nat <- housing_finance %>%
+  filter(state == "Total Australia", series_type == "Original", value_type == "Value") %>%
+  group_by(financial_year, loan_type) %>%
+  summarise(
+    annual_total = sum(housing_finance, na.rm = TRUE),
+    .groups = "drop") %>%
+  group_by(financial_year) %>%
+  mutate(share = annual_total / sum(annual_total)) %>%
+  ungroup() %>%
+  filter(loan_type == "investor") %>%
+  mutate(start_year = as.integer(str_sub(financial_year, 1, 4)))
+```
+
+```{r}
+#| label: q1-inline-stats
+#| include: false
+
+nat_wage <- overall_growth_nat %>%
+  filter(series == "Wage growth")
+
+nat_lending <- overall_growth_nat %>%
+  filter(series == "Housing lending growth")
+
+value_state_summary <- investor_share_value_state %>%
+  group_by(state) %>%
+  summarise(
+    mean_share = mean(share, na.rm = TRUE),
+    peak_share = max(share, na.rm = TRUE),
+    latest_share = share[financial_year == "2024-25"][1],
+    .groups = "drop")
+
+value_vs_nat <- investor_share_value_state %>%
+  select(financial_year, state, share) %>%
+  left_join(
+    investor_share_value_nat %>%
+      select(financial_year, nat_share = share),
+    by = "financial_year") %>%
+  group_by(state) %>%
+  summarise(
+    prop_above_nat = mean(share > nat_share, na.rm = TRUE),
+    .groups = "drop")
+```
+
+
+### Divergence between housing lending growth and wage growth
+
+@fig-q1-overall-growth separates housing lending growth and wage growth into two panels, making their state-level patterns easier to compare. Wage growth stays within a relatively narrow range of about `r round(min(nat_wage$growth_pct, na.rm = TRUE), 1)`% to `r round(max(nat_wage$growth_pct, na.rm = TRUE), 1)`%, but still shows a longer-run decline from 2005-06 to 2020-21 before rising again towards its period average of `r round(mean(nat_wage$growth_pct, na.rm = TRUE), 1)`%. Western Australia shows the largest swings in wage growth, while Tasmania appears least affected during the COVID-19 period and rebounds strongly afterwards.
+
+By contrast, housing lending growth is much more volatile and differs more across states. The sharp divergence in 2020-21 likely reflects the COVID-19 period, while the large fall in 2022-23 is consistent with a post-pandemic adjustment. Lending fluctuations are especially large in Northern Territory, Western Australia, and New South Wales, whereas South Australia and the Australian Capital Territory are relatively more stable. Overall, the figure suggests that short-run changes in housing finance are driven much more by lending market conditions than by wage growth.
+
+```{r}
+#| label: fig-q1-overall-growth
+#| fig-cap: Annual housing lending growth and wage growth across Australian states, 2005-06 to 2024-25. Coloured lines show individual states and the dashed black line shows the Total Australia series.
+#| fig-width: 10
+#| fig-height: 7
+
+p_lending <- ggplot() +
+  geom_line(
+    data = overall_growth_states %>%
+      filter(series == "Housing lending growth"), aes(x = start_year, y = growth_pct, colour = state), linewidth = 0.9, alpha = 0.9) +
+  geom_line(
+    data = overall_growth_nat %>%
+      filter(series == "Housing lending growth"), aes(x = start_year, y = growth_pct), colour = "black", linetype = "dashed", linewidth = 1.1) +
+  scale_colour_manual(values = state_colors, name = "State") +
+  scale_x_continuous(breaks = seq(2005, 2024, by = 3), labels = function(x) paste0(x, "-", str_sub(x + 1, 3, 4))) +
+  labs(title = "Housing lending growth", x = NULL, y = "Annual growth rate (%)") +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "bottom", panel.grid.minor = element_blank(), plot.title = element_text(face = "bold", hjust = 0.5))
+
+p_wage <- ggplot() +
+  geom_line(data = overall_growth_states %>%
+              filter(series == "Wage growth"),
+            aes(x = start_year, y = growth_pct, colour = state), linewidth = 0.9, alpha = 0.9) +
+  geom_line(
+    data = overall_growth_nat %>%
+      filter(series == "Wage growth"), aes(x = start_year, y = growth_pct), colour = "black", linetype = "dashed", linewidth = 1.1) +
+  scale_colour_manual(values = state_colors, name = "State") +
+  scale_x_continuous(breaks = seq(2005, 2024, by = 3), labels = function(x) paste0(x, "-", str_sub(x + 1, 3, 4))) +
+  labs(title = "Wage growth", x = "Financial year", y = "Annual growth rate (%)") +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "bottom", panel.grid.minor = element_blank(), plot.title = element_text(face = "bold", hjust = 0.5))
+
+(p_lending / p_wage) +
+  plot_layout(guides = "collect") +
+  plot_annotation(title = "Annual Housing Lending Growth and Wage Growth Across Australian States", theme = theme(plot.title = element_text(face = "bold", hjust = 0.5, size = 18))) &
+  theme(legend.position = "bottom", legend.title = element_text(size = 11), legend.text = element_text(size = 10))
+```
+
+### Long-run changes in the investor share of lending value
+
+@fig-q1-structure-value examines how the investor share of total housing lending value changed across states from 2004-05 to 2024-25. The national pattern is clearly cyclical. The investor share starts at about `r scales::percent(investor_share_value_nat$share[investor_share_value_nat$financial_year == "2004-05"], accuracy = 0.1)`, rises to a peak of `r scales::percent(max(investor_share_value_nat$share, na.rm = TRUE), accuracy = 0.1)` in 2014-15, then falls sharply to `r scales::percent(min(investor_share_value_nat$share, na.rm = TRUE), accuracy = 0.1)` in 2020-21 before recovering to `r scales::percent(investor_share_value_nat$share[investor_share_value_nat$financial_year == "2024-25"], accuracy = 0.1)` by 2024-25.
+
+New South Wales stands out as the most investor-oriented market over the long run. Its average investor share is about `r scales::percent(value_state_summary$mean_share[value_state_summary$state == "New South Wales"], accuracy = 0.1)`, and it remains above the national share in `r scales::percent(value_vs_nat$prop_above_nat[value_vs_nat$state == "New South Wales"], accuracy = 1)` of years, peaking at `r scales::percent(value_state_summary$peak_share[value_state_summary$state == "New South Wales"], accuracy = 0.1)` in 2014-15. By contrast, Tasmania has one of the lowest average investor shares, at about `r scales::percent(value_state_summary$mean_share[value_state_summary$state == "Tasmania"], accuracy = 0.1)`. Northern Territory and Tasmania show a somewhat similar long-run pattern, with investor shares generally remaining below the national benchmark for much of the period. However, both rise sharply after the COVID-19 period. By 2024-25, Northern Territory reaches `r scales::percent(investor_share_value_state$share[investor_share_value_state$state == "Northern Territory" & investor_share_value_state$financial_year == "2024-25"], accuracy = 0.1)` and Tasmania reaches `r scales::percent(investor_share_value_state$share[investor_share_value_state$state == "Tasmania" & investor_share_value_state$financial_year == "2024-25"], accuracy = 0.1)`, compared with the national share of `r scales::percent(investor_share_value_nat$share[investor_share_value_nat$financial_year == "2024-25"], accuracy = 0.1)`. Western Australia follows a different pattern: after 2008-09, its investor share begins to move further away from the national benchmark, before recovering again after the 2020-21 low. It rises from `r scales::percent(investor_share_value_state$share[investor_share_value_state$state == "Western Australia" & investor_share_value_state$financial_year == "2020-21"], accuracy = 0.1)` in 2020-21 to `r scales::percent(investor_share_value_state$share[investor_share_value_state$state == "Western Australia" & investor_share_value_state$financial_year == "2024-25"], accuracy = 0.1)` in 2024-25. The other states generally follow the national cycle more closely and do not show such distinctive departures. Overall, the figure suggests that the structure of housing lending has changed substantially over time and that investor activity has been much more important in some state housing markets than in others.
+
+```{r}
+#| label: fig-q1-structure-value
+#| fig-cap: Investor share of total housing lending value across Australian states, 2004-05 to 2024-25. Coloured lines show individual states and the dashed black line shows the Total Australia share.
+#| fig-height: 5
+#| fig-width: 10
+
+ggplot(investor_share_value_state, aes(x = start_year, y = share, colour = state)) +
+  geom_line(linewidth = 0.9) +
+  geom_line(data = investor_share_value_nat, aes(x = start_year, y = share), inherit.aes = FALSE, colour = "black", linetype = "dashed", linewidth = 1) +
+  scale_colour_manual(values = state_colors, name = "State") +
+  scale_y_continuous(labels = label_percent(accuracy = 1)) +
+  scale_x_continuous(breaks = seq(2004, 2024, by = 4), labels = function(x) paste0(x, "-", str_sub(x + 1, 3, 4))) +
+  labs(title = "Investor Share of Total Housing Lending Value by State", x = "Financial year", y = "Investor share of total lending value") +
+  theme_minimal(base_size = 11) +
+  theme(panel.grid.minor = element_blank(), plot.title = element_text(face = "bold", hjust = 0.5, size = 18), legend.position = "bottom", legend.title = element_text(size = 11), legend.text = element_text(size = 10))
+```
+
+### Summary of findings
+
+Overall, @fig-q1-overall-growth and @fig-q1-structure-value suggest that housing lending growth does not closely track wage growth across Australian states, and that the structure of lending has changed markedly over time. Investor activity appears to be more strongly related to the composition of lending than to short-run movements in total lending growth, with some states remaining much more investor-oriented than others.
 
 # Conclusion
 
