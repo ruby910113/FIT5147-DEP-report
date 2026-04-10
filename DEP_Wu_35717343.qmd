@@ -58,36 +58,33 @@ Monash University\\[1.2cm]
 
 # Introduction
 
-This report, *Housing Lending, Overseas Migration and Wage Growth Across Australian States*, examines one of the most widely debated social and economic issues in Australia: housing affordability. Recent public discussion has frequently linked rising housing pressure to migration, limited housing supply, and weak wage growth. For example, SBS News discussed how high migration is often blamed for the housing crisis and questioned whether this explanation is supported by evidence (SBS News, 2026). This makes the topic highly topical and important for students, workers, households, and policy makers.
+This report, *Housing Lending, Overseas Migration and Wage Growth Across Australian States*, examines housing affordability in Australia, a major social and economic issue. Public debate often links housing pressure to migration, limited supply, and weak wage growth. For example, SBS News (2026) discussed whether high migration is truly supported by evidence as a cause of the housing crisis. This makes the topic important for households, workers, students, and policy makers.
 
-The main purpose of this project is to explore how housing lending, overseas migration, and wage growth vary across Australian states over time. Rather than focusing only on house prices, this report uses several Australian Bureau of Statistics datasets to examine broader patterns in owner-occupier lending, investor lending, net overseas migration, and the Wage Price Index. The problem explored in this report is whether common public claims about migration, wages, and housing stress are reflected in the data, and whether these patterns differ across states.
+The report explores how housing lending, overseas migration, and wage growth have changed across Australian states over time. Using Australian Bureau of Statistics data, it examines owner-occupier lending, investor lending, net overseas migration, and the Wage Price Index. The aim is to assess whether common public claims about migration, wages, and housing stress are reflected in the data, and whether these patterns differ by state.
 
-I am personally motivated to study this topic because, as an international student from Taiwan living in Melbourne, I have become more aware of how difficult housing affordability has become for students and workers. I have seen how high housing costs can make long-term financial security feel increasingly out of reach for ordinary people. Public debate in Melbourne has also intensified around whether migration is a major cause of housing pressure. This motivated me to examine the issue more carefully using data rather than relying only on media opinions or political claims.
+I am personally interested in this topic because, as an international student from Taiwan living in Melbourne, I have become more aware of housing affordability pressures. Seeing how difficult high housing costs can make financial security for students and workers motivated me to examine this issue using data rather than relying only on public opinion or media debate.
 
 This report addresses the following questions:
 
 1.  Does the growth of housing lending align with wage growth across Australian states, and how has the lending structure changed over time?
-2.  How does the regional distribution of immigrants relate to local wages and housing costs?
-3.  Is investor lending activity driven by migration demand or market speculation?
+2.  How have the origins of overseas migrants and their state settlement patterns changed over time, and how do these patterns relate to wage growth and housing lending across Australian states?
+3.  Where are the largest gaps between investor lending and migration demand across Australian states, and how have these gaps changed over time?
 
 # Data Wrangling and Checking
 
 ```{r}
 library(tidyverse)
 library(readxl)
-library(dplyr)
-library(tidyr)
-library(purrr)
-library(stringr)
-library(tibble)
 library(lubridate)
 library(knitr)
 library(kableExtra)
-library(forcats)
-library(ggbeeswarm)
 library(patchwork)
 library(scales)
-library(slider)
+library(MASS)
+library(conflicted)
+conflict_prefer("select", "dplyr")
+conflict_prefer("filter", "dplyr")
+conflict_prefer("lag", "dplyr")
 ```
 
 This project uses four open datasets from the Australian Bureau of Statistics (ABS): Net Overseas Migration by Country of Birth, Owner-Occupier Lending, Investor Lending, and the Wage Price Index. The direct download links are provided below:
@@ -391,9 +388,9 @@ Overall, the data wrangling and checking steps suggest that the three datasets w
 
 This section explores the **relationships between housing lending, overseas migration, and wage growth across Australian states** using financial-year summaries and composition measures from **2004-05 to 2024-25**.
 
-## Does the growth of housing lending align with wage growth across Australian states, and how has the lending structure changed over time?
+## Housing Lending, Wage Growth and Lending Structure Across Australian States
 
-To address the first research question, I compared annual housing lending growth with annual wage growth across Australian states from 2005-06 to 2024-25. Housing finance was aggregated to annual state-level totals using the Original Value series, while wage growth was calculated from the state-level Wage Price Index. I then examined whether housing lending and wage growth moved together over time, and how the investor share of total lending value changed across states.
+To address the first research question, I compared annual housing lending growth with annual wage growth across Australian states from 2005-06 to 2024-25. I then examined whether these two measures moved together over time, and how the investor share of total lending value changed across states.
 
 ```{r}
 #| label: q1-prepare-data
@@ -501,15 +498,11 @@ investor_share_value_nat <- housing_finance %>%
 nat_wage <- overall_growth_nat %>%
   filter(series == "Wage growth")
 
-nat_lending <- overall_growth_nat %>%
-  filter(series == "Housing lending growth")
-
 value_state_summary <- investor_share_value_state %>%
   group_by(state) %>%
   summarise(
     mean_share = mean(share, na.rm = TRUE),
     peak_share = max(share, na.rm = TRUE),
-    latest_share = share[financial_year == "2024-25"][1],
     .groups = "drop")
 
 value_vs_nat <- investor_share_value_state %>%
@@ -596,8 +589,396 @@ ggplot(investor_share_value_state, aes(x = start_year, y = share, colour = state
 
 Overall, @fig-q1-overall-growth and @fig-q1-structure-value suggest that housing lending growth does not closely track wage growth across Australian states, and that the structure of lending has changed markedly over time. Investor activity appears to be more strongly related to the composition of lending than to short-run movements in total lending growth, with some states remaining much more investor-oriented than others.
 
+## Changing Migrant Origins, State Settlement Patterns, and Their Links to Wage Growth and Housing Lending in Australia
+
+To address the second research question, I examined how the origins of overseas migrants changed across Australian states from 2004-05 to 2024-25. I then examined whether migrant-origin concentration within each state was associated with wage growth and housing lending growth.
+
+```{r}
+#| label: q2-prepare-data
+
+origin_levels <- c("Southern & Central Asia", "North-East Asia", "South-East Asia", "North-West Europe", "Oceania & Antarctica", "North Africa & Middle East", "Sub-Saharan Africa", "Americas", "Southern & Eastern Europe")
+
+add_origin_group <- function(df) {
+  df %>%
+    mutate(
+      sacc_code = as.character(sacc_code),
+      origin_group = case_when(
+        str_sub(sacc_code, 1, 1) == "1" ~ "Oceania & Antarctica",
+        str_sub(sacc_code, 1, 1) == "2" ~ "North-West Europe",
+        str_sub(sacc_code, 1, 1) == "3" ~ "Southern & Eastern Europe",
+        str_sub(sacc_code, 1, 1) == "4" ~ "North Africa & Middle East",
+        str_sub(sacc_code, 1, 1) == "5" ~ "South-East Asia",
+        str_sub(sacc_code, 1, 1) == "6" ~ "North-East Asia",
+        str_sub(sacc_code, 1, 1) == "7" ~ "Southern & Central Asia",
+        str_sub(sacc_code, 1, 1) == "8" ~ "Americas",
+        str_sub(sacc_code, 1, 1) == "9" ~ "Sub-Saharan Africa",
+        TRUE ~ NA_character_))
+}
+
+# Add broad origin groups based on the first digit of SACC code
+overseas_migration_grouped <- overseas_migration %>%
+  filter(state %in% state_levels, country_of_birth != "Australia") %>%
+  add_origin_group()
+
+# Figure 1 data: origin-group shares within each state-year
+# Use positive net inflows only when calculating composition shares
+om_origin_state <- overseas_migration_grouped %>%
+  mutate(pos_nom = pmax(net_overseas_migration, 0)) %>%
+  group_by(financial_year, state, origin_group) %>%
+  summarise(pos_nom = sum(pos_nom, na.rm = TRUE), .groups = "drop") %>%
+  group_by(financial_year, state) %>%
+  mutate(total_pos_nom = sum(pos_nom, na.rm = TRUE), share = pos_nom / total_pos_nom, start_year = as.integer(str_sub(financial_year, 1, 4)), origin_group = factor(origin_group, levels = rev(origin_levels))) %>%
+  ungroup() %>%
+  filter(total_pos_nom > 0)
+
+# Figure 2 data: country-level concentration index (HHI)
+# Higher HHI means migrant inflows are concentrated in fewer countries of birth
+om_country_concentration <- overseas_migration_grouped %>%
+  mutate(pos_nom = pmax(net_overseas_migration, 0)) %>%
+  group_by(financial_year, state) %>%
+  mutate(total_pos_nom = sum(pos_nom, na.rm = TRUE)) %>%
+  filter(total_pos_nom > 0) %>%
+  mutate(country_share = pos_nom / total_pos_nom) %>%
+  group_by(financial_year, state) %>%
+  summarise(total_pos_nom = first(total_pos_nom), country_hhi = sum(country_share^2, na.rm = TRUE), .groups = "drop")
+
+q2_dev <- om_country_concentration %>%
+  left_join(
+    wpi_state_fy %>%
+      select(financial_year, state, wage_growth_pct), by = c("financial_year", "state")) %>%
+  left_join(
+    hf_state_fy %>%
+      select(financial_year, state, lending_growth_pct), by = c("financial_year", "state")) %>%
+  filter(!is.na(wage_growth_pct), !is.na(lending_growth_pct)) %>%
+  group_by(state) %>%
+  mutate(hhi_dev = country_hhi - mean(country_hhi, na.rm = TRUE), wage_dev = wage_growth_pct - mean(wage_growth_pct, na.rm = TRUE), lending_dev = lending_growth_pct - mean(lending_growth_pct, na.rm = TRUE)) %>%
+  ungroup()
+
+fit_rlm_coef <- function(data, outcome_var, indicator_name) {
+  
+  formula <- as.formula(paste0(outcome_var, " ~ hhi_dev"))
+  fit <- rlm(formula, data = data)
+  fit_sum <- summary(fit)
+  
+  coef_table <- as.data.frame(fit_sum$coefficients)
+  coef_table$term <- rownames(coef_table)
+  
+  hhi_row <- coef_table %>%
+    filter(term == "hhi_dev") %>%
+    transmute(estimate = Value, std.error = `Std. Error`, conf.low = estimate - 1.96 * std.error, conf.high = estimate + 1.96 * std.error)
+  
+  tibble(state = unique(data$state), indicator = indicator_name, estimate = hhi_row$estimate, std.error = hhi_row$std.error, conf.low = hhi_row$conf.low, conf.high = hhi_row$conf.high)
+}
+
+state_coef_wage_robust <- q2_dev %>%
+  group_by(state) %>%
+  group_modify(~ fit_rlm_coef(.x, "wage_dev", "Wage growth")) %>%
+  ungroup()
+
+state_coef_lending_robust <- q2_dev %>%
+  group_by(state) %>%
+  group_modify(~ fit_rlm_coef(.x, "lending_dev", "Housing lending growth")) %>%
+  ungroup()
+
+q2_coef_plot_robust <- bind_rows(
+  state_coef_wage_robust,
+  state_coef_lending_robust) %>%
+  mutate(state = factor(state, levels = rev(state_levels)))
+```
+
+```{r}
+#| label: q2-inline-stats
+
+nat_origin_shift <- overseas_migration %>%
+  filter(state == "Australia", country_of_birth != "Australia") %>%
+  add_origin_group() %>%
+  mutate(pos_nom = pmax(net_overseas_migration, 0)) %>%
+  group_by(financial_year, origin_group) %>%
+  summarise(pos_nom = sum(pos_nom, na.rm = TRUE), .groups = "drop") %>%
+  group_by(financial_year) %>%
+  mutate(share = pos_nom / sum(pos_nom, na.rm = TRUE)) %>%
+  ungroup()
+
+sca_2004 <- nat_origin_shift %>%
+  filter(financial_year == "2004-05",
+         origin_group == "Southern & Central Asia") %>%
+  pull(share)
+
+sca_2024 <- nat_origin_shift %>%
+  filter(financial_year == "2024-25",
+         origin_group == "Southern & Central Asia") %>%
+  pull(share)
+
+wa_nwe_2024 <- om_origin_state %>%
+  filter(financial_year == "2024-25",
+         state == "Western Australia",
+         origin_group == "North-West Europe") %>%
+  pull(share)
+
+vic_sca_2024 <- om_origin_state %>%
+  filter(financial_year == "2024-25",
+         state == "Victoria",
+         origin_group == "Southern & Central Asia") %>%
+  pull(share)
+
+act_sca_2024 <- om_origin_state %>%
+  filter(financial_year == "2024-25",
+         state == "Australian Capital Territory",
+         origin_group == "Southern & Central Asia") %>%
+  pull(share)
+
+q2_wage_coef <- q2_coef_plot_robust %>%
+  filter(indicator == "Wage growth")
+
+q2_lending_coef <- q2_coef_plot_robust %>%
+  filter(indicator == "Housing lending growth")
+
+wage_nsw_est <- q2_wage_coef %>%
+  filter(state == "New South Wales") %>%
+  pull(estimate)
+
+wage_act_est <- q2_wage_coef %>%
+  filter(state == "Australian Capital Territory") %>%
+  pull(estimate)
+
+lending_nt_est <- q2_lending_coef %>%
+  filter(state == "Northern Territory") %>%
+  pull(estimate)
+
+lending_tas_est <- q2_lending_coef %>%
+  filter(state == "Tasmania") %>%
+  pull(estimate)
+```
+
+### Changing Origins of Migrant Inflows Across Australian States
+
+@fig-q2-origin-heatmap shows a clear long-run shift in the origins of migrant inflows across most states. The most striking pattern is the rising importance of Southern and Central Asia, whose national share of positive overseas migrant inflows increases from about `r scales::percent(sca_2004, accuracy = 0.1)` in 2004-05 to `r scales::percent(sca_2024, accuracy = 0.1)` in 2024-25. This rise appears across nearly all states, but is especially strong in the Australian Capital Territory and Victoria, where Southern and Central Asia accounts for about `r scales::percent(act_sca_2024, accuracy = 0.1)` and `r scales::percent(vic_sca_2024, accuracy = 0.1)` of positive inflows respectively in 2024-25.
+
+By contrast, North-West Europe becomes less important in most states, although it remains more prominent in Western Australia, where it still accounts for about `r scales::percent(wa_nwe_2024, accuracy = 0.1)` of positive inflows in 2024-25. Overall, migrant settlement patterns remain uneven across states, with Victoria and the Australian Capital Territory becoming more concentrated in Southern and Central Asian inflows, while Western Australia retains a more visible North-West European component.
+
+```{r}
+#| label: fig-q2-origin-heatmap
+#| fig-cap: Origin composition of positive overseas migrant inflows across Australian states, 2004-05 to 2024-25. Darker tiles indicate larger shares within each state-year.
+#| fig-width: 10
+#| fig-height: 8
+
+ggplot(om_origin_state, aes(x = start_year, y = origin_group, fill = share)) +
+  geom_tile(colour = "white", linewidth = 0.2) +
+  facet_wrap(~ state, ncol = 2) +
+  scale_fill_gradient(low = "#f7fbff", high = "#08306b", labels = label_percent(accuracy = 1), name = "Share") +
+  scale_x_continuous(breaks = seq(2004, 2024, by = 4), labels = function(x) paste0(x, "-", str_sub(x + 1, 3, 4))) +
+  labs(title = "Changing Origins of Migrant Inflows Across Australian States", x = "Financial year", y = NULL) +
+  theme_minimal(base_size = 11) +
+  theme(panel.grid = element_blank(), strip.text = element_text(face = "bold", size = 11), plot.title = element_text(face = "bold", hjust = 0.5, size = 18), axis.text.y = element_text(size = 8), legend.position = "right")
+```
+
+### Within-state relationships between migrant-origin concentration and economic outcomes
+
+To summarise the relationship more clearly, I estimated a separate within-state slope for each state rather than plotting all state-years directly. Migrant-origin concentration was measured using a Herfindahl index (HHI), where higher values indicate that migrant inflows were concentrated in fewer countries of birth. I then examined whether years with relatively higher concentration within each state also tended to have relatively higher wage growth or housing lending growth. To reduce the influence of unusual observations, I used robust regression and plotted the resulting coefficients with 95% confidence intervals in @fig-q2-within-state-coef. Further calculation details for this within-state analysis are provided in the [Appendix](#sec-appendix-within-state).
+
+In @fig-q2-within-state-coef, positive coefficients indicate that, within a state, years with more concentrated migrant inflows tended to coincide with stronger-than-usual economic growth, while negative coefficients indicate the opposite. In the wage-growth panel, 7 of the 8 states have negative coefficients, with the strongest negative slopes appearing in New South Wales (`r round(wage_nsw_est, 1)`) and the Australian Capital Territory (`r round(wage_act_est, 1)`). The confidence intervals for New South Wales, Victoria, Tasmania, and the Australian Capital Territory remain below zero, suggesting that higher migrant-origin concentration was associated with weaker-than-usual wage growth in these states. 
+
+By contrast, the housing-lending panel is more mixed, with 5 of the 8 states have positive coefficients, but only Northern Territory and Tasmania have intervals that remain clearly above zero, with estimated slopes of about `r round(lending_nt_est, 1)` and `r round(lending_tas_est, 1)` respectively. The remaining states have wide intervals that cross zero. Overall, these results suggest that while migrant origins and settlement patterns changed substantially across states, higher migrant-origin concentration was more consistently linked to weaker wage growth than to housing lending growth, and its relationship with housing lending remained uneven across Australia.
+
+```{r}
+#| label: fig-q2-within-state-coef
+#| fig-cap: Robust within-state associations between migrant-origin concentration and economic outcomes, 2005-06 to 2024-25. Coefficients are estimated from state-specific robust regressions using deviations from each state’s own average level. Positive coefficients indicate that years with above-average migrant-origin concentration tend to coincide with above-average economic growth within the same state.
+#| fig-width: 10
+#| fig-height: 5
+
+ggplot(q2_coef_plot_robust, aes(x = estimate, y = state, colour = state)) +
+  geom_vline(xintercept = 0, linetype = "dashed", colour = "grey50") +
+  geom_errorbar(aes(xmin = conf.low, xmax = conf.high), orientation = "y", width = 0.2, linewidth = 0.7) +
+  geom_point(size = 2.8) +
+  facet_wrap(~ indicator, scales = "free_x") +
+  scale_colour_manual(values = state_colors, guide = "none") +
+  labs(title = "Within-State Links Between Migrant-Origin Concentration and Economic Outcomes", x = "Estimated robust within-state slope", y = NULL) +
+  theme_minimal(base_size = 11) +
+  theme(panel.grid.minor = element_blank(), plot.title = element_text(face = "bold", hjust = 0.5, size = 16), plot.title.position = "plot", strip.text = element_text(face = "bold", size = 11))
+```
+
+### Summary of findings
+
+Overall, @fig-q2-origin-heatmap and @fig-q2-within-state-coef suggest that the origins of overseas migrants and their settlement patterns changed substantially across Australian states over time. Migrant inflows became increasingly dominated by Southern and Central Asia, but this shift was not uniform across Australia, with Victoria and the Australian Capital Territory showing stronger concentration in Southern and Central Asian inflows, while Western Australia retained a more visible North-West European component. However, these changes in migrant origins were not associated with stronger economic outcomes in any consistent way. Within states, higher migrant-origin concentration was more often linked to weaker wage growth, while its relationship with housing lending growth was mixed and uneven across Australia.
+
+## Where are the largest gaps between investor lending and migration demand across Australian states, and how have these gaps changed over time?
+
+
+
 # Conclusion
 
 # Reflection
 
 # References
+
+\appendix
+
+# Appendix
+
+## Key calculated values for Housing Lending, Wage Growth and Lending Structure Across Australian States
+
+This appendix reports the main calculated values cited in Questions 1 and 2.
+
+For Question 1, annual growth rates were calculated as:
+
+$$
+Growth_{st} = \left(\frac{X_{st}}{X_{s,t-1}} - 1\right)\times 100
+$$
+
+where $X_{st}$ is the annual value for state $s$ in financial year $t$.
+
+The investor share of total housing lending value was calculated as:
+
+$$
+InvestorShare_{st} = \frac{InvestorValue_{st}}{InvestorValue_{st} + OwnerOccupierValue_{st}}
+$$
+
+The proportion of years in which a state’s investor share exceeded the national share was calculated as:
+
+$$
+AboveNational_s = \frac{1}{T}\sum_t I\left(Share_{st} > Share^{AUS}_t\right)
+$$
+
+where $I(\cdot)$ is an indicator that takes the value 1 when the condition is true and 0 otherwise.
+
+```{r}
+#| label: app-q1-key-values
+
+q1_growth_numbers_tbl <- tibble(
+  Measure = c("National wage growth minimum", "National wage growth maximum", "National average wage growth"),
+  Value = c(min(nat_wage$growth_pct, na.rm = TRUE), max(nat_wage$growth_pct, na.rm = TRUE), mean(nat_wage$growth_pct, na.rm = TRUE))) %>%
+  mutate(Value = paste0(round(Value, 1), "%"))
+
+q1_investor_numbers_tbl <- tibble(
+  Measure = c("National investor share at start of period", "National investor share at peak", "National investor share at trough", "National investor share in latest year", "New South Wales average investor share", "New South Wales share above national benchmark", "New South Wales peak investor share", "Tasmania average investor share", "Northern Territory investor share in latest year", "Tasmania investor share in latest year", "Western Australia investor share in 2020-21", "Western Australia investor share in latest year"),
+  Geography = c("Australia", "Australia", "Australia", "Australia", "New South Wales", "New South Wales", "New South Wales", "Tasmania", "Northern Territory", "Tasmania", "Western Australia", "Western Australia"),
+  `Financial year` = c("2004-05", "2014-15", "2020-21", "2024-25", "2004-05 to 2024-25", "2004-05 to 2024-25", "2014-15", "2004-05 to 2024-25", "2024-25", "2024-25", "2020-21", "2024-25"),
+  Value = c(
+    investor_share_value_nat$share[investor_share_value_nat$financial_year == "2004-05"],
+    max(investor_share_value_nat$share, na.rm = TRUE),
+    min(investor_share_value_nat$share, na.rm = TRUE),
+    investor_share_value_nat$share[investor_share_value_nat$financial_year == "2024-25"],
+    value_state_summary$mean_share[value_state_summary$state == "New South Wales"],
+    value_vs_nat$prop_above_nat[value_vs_nat$state == "New South Wales"],
+    value_state_summary$peak_share[value_state_summary$state == "New South Wales"],
+    value_state_summary$mean_share[value_state_summary$state == "Tasmania"],
+    investor_share_value_state$share[investor_share_value_state$state == "Northern Territory" & investor_share_value_state$financial_year == "2024-25"],
+    investor_share_value_state$share[investor_share_value_state$state == "Tasmania" & investor_share_value_state$financial_year == "2024-25"],
+    investor_share_value_state$share[investor_share_value_state$state == "Western Australia" & investor_share_value_state$financial_year == "2020-21"],
+    investor_share_value_state$share[investor_share_value_state$state == "Western Australia" & investor_share_value_state$financial_year == "2024-25"])) %>%
+  mutate(Value = scales::percent(Value, accuracy = 0.1))
+```
+
+### Main values cited in the annual growth discussion
+
+```{r}
+#| label: tbl-app-q1-growth-values
+
+q1_growth_numbers_tbl %>%
+  kable(caption = "Main values cited in the discussion of annual housing lending growth and wage growth", align = c("l", "r")) %>%
+  kable_styling(full_width = FALSE)
+```
+
+### Main values cited in the investor-share discussion
+
+```{r}
+#| label: tbl-app-q1-investor-values
+
+q1_investor_numbers_tbl %>%
+  kable(caption = "Main values cited in the discussion of long-run changes in the investor share of lending value", align = c("l", "l", "c", "r")) %>%
+  column_spec(1, width = "6cm") %>%
+  kable_styling(full_width = FALSE, position = "center", latex_options = "hold_position")
+```
+
+## Further calculation details for Within-State Links Between Migrant-Origin Concentration and Economic Outcomes
+
+This appendix provides further details of the calculation used in the figure titled *Within-State Links Between Migrant-Origin Concentration and Economic Outcomes*.
+
+For each state $s$ and financial year $t$, migrant-origin concentration was measured using a country-level Herfindahl index (HHI):
+
+$$
+HHI_{st} = \sum_i p_{ist}^2
+$$
+
+where $p_{ist}$ is the share of positive net overseas migration from country of birth $i$ in state $s$ and year $t$. It was calculated as:
+
+$$
+p_{ist} = \frac{\max(\mathrm{NOM}_{ist}, 0)}{\sum_j \max(\mathrm{NOM}_{jst}, 0)}
+$$
+
+A higher HHI indicates that migrant inflows were more concentrated in fewer countries of birth, while a lower HHI indicates a more diverse origin mix.
+
+To focus on within-state variation rather than long-run differences between states, migrant-origin concentration, wage growth, and housing lending growth were centred around each state’s own average level:
+
+$$
+HHI^{dev}_{st} = HHI_{st} - \bar{HHI}_s
+$$
+
+$$
+WAGE^{dev}_{st} = WAGE_{st} - \overline{WAGE}_s
+$$
+
+$$
+LEND^{dev}_{st} = LEND_{st} - \overline{LEND}_s
+$$
+
+where $\bar{HHI}_s$, $\overline{WAGE}_s$, and $\overline{LEND}_s$ are the long-run state averages for each state.
+
+Separate robust regression models were then estimated for each state. For wage growth, the model was:
+
+$$
+WAGE^{dev}_{st} = \alpha_s + \beta_s HHI^{dev}_{st} + \varepsilon_{st}
+$$
+
+For housing lending growth, the model was:
+
+$$
+LEND^{dev}_{st} = \alpha_s + \beta_s HHI^{dev}_{st} + \varepsilon_{st}
+$$
+
+The coefficient $\beta_s$ measures whether years with above-average migrant-origin concentration within a state also tended to have above-average wage growth or housing lending growth in that same state. Robust regression was used so that unusual observations had less influence on the estimated slopes than in ordinary least squares. The intervals shown in the figure are approximate 95\% confidence intervals based on the robust standard errors of the fitted models.
+
+```{r}
+#| label: app-q2-key-values
+
+q2_origin_numbers_tbl <- tibble(
+  Measure = c("Southern and Central Asia share of positive overseas migrant inflows",
+              "Southern and Central Asia share of positive overseas migrant inflows",
+              "Southern and Central Asia share of positive inflows",
+              "Southern and Central Asia share of positive inflows",
+              "North-West Europe share of positive inflows"),
+  Geography = c("Australia", "Australia", "Australian Capital Territory", "Victoria", "Western Australia"),
+  `Financial year` = c("2004-05", "2024-25", "2024-25", "2024-25", "2024-25"),
+  Value = c(sca_2004, sca_2024, act_sca_2024, vic_sca_2024, wa_nwe_2024)) %>%
+  mutate(Value = scales::percent(Value, accuracy = 0.1))
+
+q2_robust_key_tbl <- q2_coef_plot_robust %>%
+  filter((indicator == "Wage growth" & state %in% c("New South Wales", "Victoria", "Tasmania", "Australian Capital Territory")) |
+      (indicator == "Housing lending growth" & state %in% c("Northern Territory", "Tasmania"))) %>%
+  mutate(state = as.character(state), estimate = round(estimate, 1),
+         conf.low = round(conf.low, 1), conf.high = round(conf.high, 1),
+         `95% CI` = paste0("[", conf.low, ", ", conf.high, "]")) %>%
+  select(State = state, `Economic outcome` = indicator, Estimate = estimate, `95% CI`)
+```
+
+### Main values cited in the origin-composition discussion
+
+```{r}
+#| label: tbl-app-q2-origin-values
+
+q2_origin_numbers_tbl %>%
+  kable(caption = "Main values cited in the discussion of changing migrant origins across Australian states", align = c("l", "l", "c", "r"), booktabs = TRUE) %>%
+  column_spec(1, width = "6cm") %>%
+  kable_styling(full_width = FALSE, position = "center", latex_options = "hold_position")
+```
+
+### Main values cited in the robust within-state regression discussion
+
+```{r}
+#| label: tbl-app-q2-robust-values
+
+q2_robust_key_tbl %>%
+  kable(caption = "Main robust regression coefficients and confidence intervals cited in the within-state analysis of migrant-origin concentration and economic outcomes", align = c("l", "l", "r", "c")) %>% 
+  kable_styling(full_width = FALSE, position = "center")
+```
+
