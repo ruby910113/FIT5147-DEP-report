@@ -800,7 +800,7 @@ ggplot(q2_coef_plot_robust, aes(x = estimate, y = state, colour = state)) +
   geom_point(size = 2.8) +
   facet_wrap(~ indicator, scales = "free_x") +
   scale_colour_manual(values = state_colors, guide = "none") +
-  labs(title = "Within-State Links Between Migrant-Origin Concentration and Economic Outcomes", x = "Estimated robust within-state slope", y = NULL) +
+  labs(title = "Within-state relationships between migrant-origin concentration and economic outcomes", x = "Estimated robust within-state slope", y = NULL) +
   theme_minimal(base_size = 11) +
   theme(panel.grid.minor = element_blank(), plot.title = element_text(face = "bold", hjust = 0.5, size = 16), plot.title.position = "plot", strip.text = element_text(face = "bold", size = 11))
 ```
@@ -939,9 +939,50 @@ plot_grid(title_plot, image_plot, ncol = 1, rel_heights = c(0.14, 0.86))
 
 # Conclusion
 
+This report shows that housing lending, overseas migration and wage growth did not move together in one simple national pattern across Australian states. The exploration showed that housing lending growth was much more volatile than wage growth (@fig-q1-overall-growth), while the investor share of lending changed markedly over time and remained especially important in some states, particularly New South Wales (@fig-q1-structure-value). Migrant origins also changed clearly over the study period, with Southern and Central Asia becoming more prominent across many states (@fig-q2-origin-heatmap), but the within-state links between migrant-origin concentration and economic outcomes were uneven and were generally clearer for wage growth than for housing lending growth (@fig-q2-within-state-coef).
+
+Taken together with @fig-q3-maps, these findings show that the gap between investor lending and migration demand became more geographically concentrated over time, especially in New South Wales and Victoria. Overall, the original questions suggest that housing lending does not closely align with wage growth, migrant settlement patterns have shifted substantially, and the mismatch between investor activity and migration demand differs strongly across states. In this report, *Housing Lending, Overseas Migration and Wage Growth Across Australian States* is best understood as a state-specific rather than uniform national story. These conclusions are also broadly consistent with the supplementary statistical checks in @sec-appendix-supplementary-tests, although the additional support is weaker for the Question 3 result. These results are descriptive rather than causal, but they show that the relationships at the centre of Australia’s housing debate vary substantially across state housing markets.
+
 # Reflection
 
+This project was challenging for me in a lot of ways and I learned a lot from it. The hardest part was the page limit. I am quite comfortable using R to explore data and make visualisations, and I usually like trying different ways to analyse a dataset. But in this assignment, I had to answer three big questions within a limited number of pages. Since each question only had around two pages of space, I had to think very carefully about what to include and what to leave out. That was a big challenge for me, and it was also the first time I spent almost three weeks finishing one data analysis report. Through this process, I realised that data exploration is not only about doing as much analysis as possible, but also about choosing the clearest and most useful way to present it.
+
+Another challenge was deciding how to calculate and summarise the data so that each question could be answered properly. Because I could only use one or two figures for each question, I had to spend a lot of time thinking about which method would work best. Without using Shiny app it was not easy to answer broad questions in such a small space, so I tried many different approaches before deciding on the final one. I also improved a lot in debugging during this project. The ABS datasets were quite complicated to clean and combine, and many parts of the analysis needed repeated calculations and custom functions. Writing functions is still difficult for me, so this project pushed me to practise that skill a lot more. Overall, the biggest lesson I learned was how to write a concise report, because that is something I am not naturally good at and had not really tried before. If I did this project again, I would try to plan the structure earlier and decide on the final figures and calculations sooner so I could manage the page limit better.
+
 # References
+
+Australian Bureau of Statistics. (n.d.). Australian Bureau of Statistics. Retrieved April 15, 2026, from https://www.abs.gov.au/
+
+Szumer, Z. (2026, March 3). 'Pushed out of paradise': High migration is often blamed for the housing crisis. Is that right? SBS News. https://www.sbs.com.au/news/insight/article/is-high-migration-really-causing-the-housing-crisis/4i6dsl8yh
+
+# Package citations
+
+Garrett Grolemund, Hadley Wickham (2011). Dates and Times Made Easy with lubridate. Journal of Statistical Software, 40(3), 1-25. <https://www.jstatsoft.org/v40/i03/>.
+
+Ooms J (2026). magick: Advanced Graphics and Image-Processing in R. doi:10.32614/CRAN.package.magick <https://doi.org/10.32614/CRAN.package.magick>, R package version 2.9.1, <https://CRAN.R-project.org/package=magick>.
+
+Pedersen T (2025). patchwork: The Composer of Plots. doi:10.32614/CRAN.package.patchwork <https://doi.org/10.32614/CRAN.package.patchwork>, R package version 1.3.2, <https://CRAN.R-project.org/package=patchwork>.
+
+R Core Team (2026). R: A Language and Environment for Statistical Computing. R Foundation for Statistical Computing, Vienna, Austria. <https://www.R-project.org/>.
+
+Venables, W. N. & Ripley, B. D. (2002) Modern Applied Statistics with S. Fourth Edition. Springer, New York. ISBN 0-387-95457-0
+
+Wickham H (2023). conflicted: An Alternative Conflict Resolution Strategy. doi:10.32614/CRAN.package.conflicted <https://doi.org/10.32614/CRAN.package.conflicted>, R package version 1.2.0, <https://CRAN.R-project.org/package=conflicted>.
+
+Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Hayes A, Henry L, Hester J, Kuhn M, Pedersen TL, Miller E, Bache SM, Müller K, Ooms J, Robinson D, Seidel DP, Spinu V, Takahashi K, Vaughan D, Wilke C, Woo K, Yutani H (2019). “Welcome to the tidyverse.” Journal of Open Source Software, 4(43), 1686. doi:10.21105/joss.01686 <https://doi.org/10.21105/joss.01686>.
+
+Wickham H, Bryan J (2025). readxl: Read Excel Files. doi:10.32614/CRAN.package.readxl <https://doi.org/10.32614/CRAN.package.readxl>, R package version 1.4.5, <https://CRAN.R-project.org/package=readxl>.
+
+Wickham H, Pedersen T, Seidel D (2025). scales: Scale Functions for Visualization. doi:10.32614/CRAN.package.scales <https://doi.org/10.32614/CRAN.package.scales>
+, R package version 1.4.0, <https://CRAN.R-project.org/package=scales>.
+
+Wilke C (2025). cowplot: Streamlined Plot Theme and Plot Annotations for 'ggplot2'. doi:10.32614/CRAN.package.cowplot <https://doi.org/10.32614/CRAN.package.cowplot>, R package version 1.2.0, <https://CRAN.R-project.org/package=cowplot>.
+
+Wilke C, Wiernik B (2022). gridtext: Improved Text Rendering Support for 'Grid' Graphics. doi:10.32614/CRAN.package.gridtext <https://doi.org/10.32614/CRAN.package.gridtext>, R package version 0.1.5, <https://CRAN.R-project.org/package=gridtext>.
+
+Xie Y (2025). knitr: A General-Purpose Package for Dynamic Report Generation in R. R package version 1.51, <https://yihui.org/knitr/>.
+
+Zhu H (2024). kableExtra: Construct Complex Table with 'kable' and Pipe Syntax. doi:10.32614/CRAN.package.kableExtra <https://doi.org/10.32614/CRAN.package.kableExtra>, R package version 1.4.0, <https://CRAN.R-project.org/package=kableExtra>.
 
 \appendix
 
@@ -949,11 +990,11 @@ plot_grid(title_plot, image_plot, ncol = 1, rel_heights = c(0.14, 0.86))
 
 ## Diagnostics and excluded-year checks for Questions 2 and 3 {#sec-appendix-excluded-years}
 
-This section provides additional checks for the years excluded from the Question 2 and Question 3 analyses. For Question 2, I report influence diagnostics for 2020-21, since this was the year that showed the clearest influence in the state-specific regression models. For Question 3, because the analysis is descriptive rather than regression-based, leverage and Cook's distance are not appropriate. Instead, I report the investor--migration gaps for the excluded years directly, so that these years can be compared with the representative mapped periods.
+This section reports additional checks for the observations excluded from Questions 2 and 3. For Question 2, I report influence diagnostics for 2020-21. For Question 3, I report the investor-migration gaps for 2020-21 directly.
 
 ### Q2: Influence diagnostics for 2020-21
 
-For the within-state regression analysis in Question 2, I first estimated state-specific linear models on the full sample before exclusion and then calculated leverage and Cook's distance for each state-year observation. Leverage was used to identify observations with unusual predictor values, while Cook's distance was used to assess how strongly each observation influenced the fitted slope. The diagnostics show that 2020-21 was the most clearly influential year in several state-level models, while 2021-22 and 2022-23 were generally less influential. These diagnostics were used only to assess influence. The final coefficients shown in @fig-q2-within-state-coef were still estimated using robust regression after excluding 2020-21 to 2022-23.
+For Question 2, I estimated state-specific linear models on the full sample and calculated leverage and Cook's distance for each state-year observation. These diagnostics show whether 2020-21 had an unusually strong influence on the fitted slopes. The final coefficients in @fig-q2-within-state-coef were still estimated using robust regression after excluding 2020-21 to 2022-23.
 
 ```{r}
 #| label: app-q2-influence-data
@@ -1021,143 +1062,59 @@ q2_influence_2020_tbl %>%
   kable_styling(full_width = FALSE, position = "center", font_size = 8, latex_options = c("scale_down", "hold_position"))
 ```
 
-### Q3: Investor--migration gaps in the excluded years
+### Q3: Investor-migration gaps in 2020-21
 
-For Question 3, the excluded years were not part of a regression model, so leverage and Cook's distance were not used. Instead, Table @tbl-app-q3-excluded-years reports the investor--migration gap for 2020-21 to 2022-23 directly. This makes it easier to see why these years were excluded from the mapped comparison periods. These years reflect the pandemic period and the immediate reopening adjustment, when migration patterns were unusually disrupted and less suitable for representing a stable geographic pattern.
+For Question 3, @tbl-app-q3-excluded-years reports the investor-migration gap for 2020-21 directly. This helps show why the pandemic year was treated as atypical and excluded from the mapped comparison periods.
 
 ```{r}
 #| label: app-q3-excluded-years
 
 q3_excluded_years_tbl <- housing_finance %>%
-  filter(state %in% state_levels, loan_type == "investor", value_type == "Value", series_type == "Original", financial_year %in% c("2020-21", "2021-22", "2022-23")) %>%
+  filter(loan_type == "investor", value_type == "Value", series_type == "Original", financial_year == "2020-21") %>%
   group_by(financial_year, state) %>%
   summarise(investor_value = sum(housing_finance, na.rm = TRUE), .groups = "drop") %>%
   group_by(financial_year) %>%
-  mutate(total_investor_value = sum(investor_value, na.rm = TRUE),
-    investor_share = investor_value / total_investor_value) %>%
+  mutate(total_investor_value = sum(investor_value, na.rm = TRUE), investor_share = investor_value / total_investor_value) %>%
   ungroup() %>%
   left_join(
     overseas_migration %>%
-      filter(state %in% state_levels, country_of_birth != "Australia", financial_year %in% c("2020-21", "2021-22", "2022-23")) %>%
+      filter(state %in% state_levels, country_of_birth != "Australia", financial_year == "2020-21") %>%
       mutate(pos_nom = pmax(net_overseas_migration, 0)) %>%
       group_by(financial_year, state) %>%
       summarise(pos_nom = sum(pos_nom, na.rm = TRUE), .groups = "drop") %>%
       group_by(financial_year) %>%
       mutate(total_pos_nom = sum(pos_nom, na.rm = TRUE), migration_share = pos_nom / total_pos_nom) %>%
       ungroup() %>%
-      select(financial_year, state, migration_share),
-    by = c("financial_year", "state")) %>%
+      select(financial_year, state, migration_share), by = c("financial_year", "state")) %>%
   mutate(investor_share = round(investor_share * 100, 1), migration_share = round(migration_share * 100, 1), gap_pp = round(investor_share - migration_share, 1)) %>%
   select(State = state, `Financial year` = financial_year, `Investor share (%)` = investor_share, `Migration share (%)` = migration_share, `Gap (pp)` = gap_pp) %>%
-  arrange(`Financial year`, State)
+  arrange(State)
 ```
 
 ```{r}
 #| label: tbl-app-q3-excluded-years
 
 q3_excluded_years_tbl %>%
-  kable(caption = "Investor--migration gaps in the excluded years for Question 3", align = c("l", "c", "r", "r", "r"), booktabs = TRUE) %>%
+  kable(caption = "Investor--migration gaps in the excluded year for Question 3", align = c("l", "c", "r", "r", "r"), booktabs = TRUE) %>%
   column_spec(1, width = "3.2cm") %>%
-  kable_styling(full_width = FALSE, position = "center", latex_options = c("scale_down", "hold_position"))
-```
-
-
-## Key calculated values for Housing Lending, Wage Growth and Lending Structure Across Australian States
-
-This appendix reports the main calculated values cited in Questions 1 and 2.
-
-For Question 1, annual growth rates were calculated as:
-
-$$
-Growth_{st} = \left(\frac{X_{st}}{X_{s,t-1}} - 1\right)\times 100
-$$
-
-where $X_{st}$ is the annual value for state $s$ in financial year $t$.
-
-The investor share of total housing lending value was calculated as:
-
-$$
-InvestorShare_{st} = \frac{InvestorValue_{st}}{InvestorValue_{st} + OwnerOccupierValue_{st}}
-$$
-
-The proportion of years in which a state’s investor share exceeded the national share was calculated as:
-
-$$
-AboveNational_s = \frac{1}{T}\sum_t I\left(Share_{st} > Share^{AUS}_t\right)
-$$
-
-where $I(\cdot)$ is an indicator that takes the value 1 when the condition is true and 0 otherwise.
-
-```{r}
-#| label: app-q1-key-values
-
-q1_growth_numbers_tbl <- tibble(
-  Measure = c("National wage growth minimum", "National wage growth maximum", "National average wage growth"),
-  Value = c(min(nat_wage$growth_pct, na.rm = TRUE), max(nat_wage$growth_pct, na.rm = TRUE), mean(nat_wage$growth_pct, na.rm = TRUE))) %>%
-  mutate(Value = paste0(round(Value, 1), "%"))
-
-q1_investor_numbers_tbl <- tibble(
-  Measure = c("National investor share at start of period", "National investor share at peak", "National investor share at trough", "National investor share in latest year", "New South Wales average investor share", "New South Wales share above national benchmark", "New South Wales peak investor share", "Tasmania average investor share", "Northern Territory investor share in latest year", "Tasmania investor share in latest year", "Western Australia investor share in 2020-21", "Western Australia investor share in latest year"),
-  Geography = c("Australia", "Australia", "Australia", "Australia", "New South Wales", "New South Wales", "New South Wales", "Tasmania", "Northern Territory", "Tasmania", "Western Australia", "Western Australia"),
-  `Financial year` = c("2004-05", "2014-15", "2020-21", "2024-25", "2004-05 to 2024-25", "2004-05 to 2024-25", "2014-15", "2004-05 to 2024-25", "2024-25", "2024-25", "2020-21", "2024-25"),
-  Value = c(
-    investor_share_value_nat$share[investor_share_value_nat$financial_year == "2004-05"],
-    max(investor_share_value_nat$share, na.rm = TRUE),
-    min(investor_share_value_nat$share, na.rm = TRUE),
-    investor_share_value_nat$share[investor_share_value_nat$financial_year == "2024-25"],
-    value_state_summary$mean_share[value_state_summary$state == "New South Wales"],
-    value_vs_nat$prop_above_nat[value_vs_nat$state == "New South Wales"],
-    value_state_summary$peak_share[value_state_summary$state == "New South Wales"],
-    value_state_summary$mean_share[value_state_summary$state == "Tasmania"],
-    investor_share_value_state$share[investor_share_value_state$state == "Northern Territory" & investor_share_value_state$financial_year == "2024-25"],
-    investor_share_value_state$share[investor_share_value_state$state == "Tasmania" & investor_share_value_state$financial_year == "2024-25"],
-    investor_share_value_state$share[investor_share_value_state$state == "Western Australia" & investor_share_value_state$financial_year == "2020-21"],
-    investor_share_value_state$share[investor_share_value_state$state == "Western Australia" & investor_share_value_state$financial_year == "2024-25"])) %>%
-  mutate(Value = scales::percent(Value, accuracy = 0.1))
-```
-
-### Main values cited in the annual growth discussion
-
-```{r}
-#| label: tbl-app-q1-growth-values
-
-q1_growth_numbers_tbl %>%
-  kable(caption = "Main values cited in the discussion of annual housing lending growth and wage growth", align = c("l", "r")) %>%
-  kable_styling(full_width = FALSE)
-```
-
-### Main values cited in the investor-share discussion
-
-```{r}
-#| label: tbl-app-q1-investor-values
-
-q1_investor_numbers_tbl %>%
-  kable(caption = "Main values cited in the discussion of long-run changes in the investor share of lending value", align = c("l", "l", "c", "r")) %>%
-  column_spec(1, width = "6cm") %>%
-  kable_styling(full_width = FALSE, position = "center", latex_options = "hold_position")
+  kable_styling(full_width = FALSE, position = "center", font_size = 8, latex_options = c("scale_down", "hold_position"))
 ```
 
 ## Further calculation details for Within-State Links Between Migrant-Origin Concentration and Economic Outcomes {#sec-appendix-within-state}
 
-This appendix provides further details of the calculation used in the figure titled *Within-State Links Between Migrant-Origin Concentration and Economic Outcomes*.
-
-For each state $s$ and financial year $t$, migrant-origin concentration was measured using a country-level Herfindahl index (HHI):
+For each state and financial year, migrant-origin concentration was measured using a country-level Herfindahl index:
 
 $$
 HHI_{st} = \sum_i p_{ist}^2
 $$
 
-where $p_{ist}$ is the share of positive net overseas migration from country of birth $i$ in state $s$ and year $t$. It was calculated as:
+where $p_{ist}$ is the share of positive net overseas migration from country of birth $i$ in state $s$ and year $t$:
 
 $$
 p_{ist} = \frac{\max(\mathrm{NOM}_{ist}, 0)}{\sum_j \max(\mathrm{NOM}_{jst}, 0)}
 $$
 
-A higher HHI indicates that migrant inflows were more concentrated in fewer countries of birth, while a lower HHI indicates a more diverse origin mix.
-
-The within-state regression analysis excludes 2020-21 to 2022-23. The influence diagnostics show that 2020-21 was the most clearly influential year in several state-level models, especially for housing lending growth. By contrast, 2021-22 and 2022-23 were less influential in most cases. However, these years were still excluded because they belong to the broader pandemic and reopening adjustment period, during which migration patterns remained unusually disrupted. Excluding all three years therefore reflects both the diagnostics and the substantive instability of this period. Excluding these years makes the within-state relationships more stable and easier to interpret.
-
-To focus on within-state variation rather than long-run differences between states, migrant-origin concentration, wage growth, and housing lending growth were centred around each state's own average level using the remaining years in the estimation sample:
+The within-state analysis excludes 2020-21 to 2022-23. After excluding these years, I centred migrant-origin concentration, wage growth, and housing lending growth around each state's own average:
 
 $$
 HHI^{dev}_{st} = HHI_{st} - \bar{HHI}_s
@@ -1171,61 +1128,19 @@ $$
 LEND^{dev}_{st} = LEND_{st} - \overline{LEND}_s
 $$
 
-where $\bar{HHI}_s$, $\overline{WAGE}_s$, and $\overline{LEND}_s$ are the state-specific sample averages after excluding 2020-21 to 2022-23.
-
-Separate robust regression models were then estimated for each state. For wage growth, the model was:
+I then estimated separate robust regression models for each state:
 
 $$
 WAGE^{dev}_{st} = \alpha_s + \beta_s HHI^{dev}_{st} + \varepsilon_{st}
 $$
 
-For housing lending growth, the model was:
-
 $$
 LEND^{dev}_{st} = \alpha_s + \beta_s HHI^{dev}_{st} + \varepsilon_{st}
 $$
 
-The coefficient $\beta_s$ measures whether years with above-average migrant-origin concentration within a state also tended to have above-average wage growth or housing lending growth in that same state. Robust regression was used so that unusual observations had less influence on the estimated slopes than in ordinary least squares. The intervals shown in the figure are approximate 95\% confidence intervals based on the robust standard errors of the fitted models.
-
-```{r}
-#| label: app-q2-key-values
-
-q2_origin_numbers_tbl <- tibble(
-  Measure = c("Southern and Central Asia share of positive overseas migrant inflows", "Southern and Central Asia share of positive overseas migrant inflows", "Southern and Central Asia share of positive inflows", "Southern and Central Asia share of positive inflows", "North-West Europe share of positive inflows"), Geography = c("Australia", "Australia", "Australian Capital Territory", "Victoria", "Western Australia"), `Financial year` = c("2004-05", "2024-25", "2024-25", "2024-25", "2024-25"), Value = c(sca_2004, sca_2024, act_sca_2024, vic_sca_2024, wa_nwe_2024)) %>%
-  mutate(Value = scales::percent(Value, accuracy = 0.1))
-
-q2_robust_key_tbl <- q2_coef_plot_robust %>%
-  filter((indicator == "Wage growth" &
-       state %in% c("New South Wales", "Tasmania", "Australian Capital Territory", "Northern Territory")) |
-      (indicator == "Housing lending growth" & state %in% c("Tasmania", "Queensland", "Western Australia", "Victoria"))) %>%
-  mutate(state = as.character(state), estimate = round(estimate, 1), conf.low = round(conf.low, 1), conf.high = round(conf.high, 1), `95% CI` = paste0("[", conf.low, ", ", conf.high, "]")) %>%
-  select(State = state, `Economic outcome` = indicator, Estimate = estimate, `95% CI`)
-```
-
-### Main values cited in the origin-composition discussion
-
-```{r}
-#| label: tbl-app-q2-origin-values
-
-q2_origin_numbers_tbl %>%
-  kable(caption = "Main values cited in the discussion of changing migrant origins across Australian states", align = c("l", "l", "c", "r"), booktabs = TRUE) %>%
-  column_spec(1, width = "6cm") %>%
-  kable_styling(full_width = FALSE, position = "center", latex_options = "hold_position")
-```
-
-### Main values cited in the robust within-state regression discussion
-
-```{r}
-#| label: tbl-app-q2-robust-values
-
-q2_robust_key_tbl %>%
-  kable(caption = "Main robust regression coefficients and confidence intervals cited in the within-state analysis of migrant-origin concentration and economic outcomes, excluding 2020-21 to 2022-23", align = c("l", "l", "r", "c")) %>%
-  kable_styling(full_width = FALSE, position = "center")
-```
+The coefficient $\beta_s$ shows whether years with above-average migrant-origin concentration within a state also tended to have above-average wage growth or housing lending growth. The intervals shown in the figure are approximate 95\% confidence intervals.
 
 ## Further calculation details for Geographic Gaps Between Investor Lending and Migration Demand {#sec-appendix-q3-gap}
-
-This appendix provides further details of the calculation used in the figure titled *Geographic Gaps Between Investor Lending and Migration Demand Across Australian States*.
 
 For each state $s$ and financial year $t$, migration demand was proxied by the state share of positive overseas migrant inflows:
 
@@ -1233,79 +1148,202 @@ $$
 MigrationShare_{st} = \frac{PositiveNOM_{st}}{\sum_r PositiveNOM_{rt}}
 $$
 
-where $PositiveNOM_{st}$ is the total positive net overseas migration in state $s$ and year $t$, aggregated across all countries of birth except Australia. Positive inflows were used so that the measure captured the distribution of incoming migration demand across states.
-
 Investor activity was measured by the state share of investor lending value:
 
 $$
 InvestorShare_{st} = \frac{InvestorValue_{st}}{\sum_r InvestorValue_{rt}}
 $$
 
-where $InvestorValue_{st}$ is the total value of investor housing lending in state $s$ and year $t$.
-
-The investor--migration gap was then calculated as:
+The investor-migration gap was then calculated as:
 
 $$
 Gap_{st} = 100 \times \left( InvestorShare_{st} - MigrationShare_{st} \right)
 $$
 
-This gap is expressed in percentage points. Positive values indicate that a state's share of investor lending was larger than its share of migration demand, while negative values indicate the opposite.
-
-The mapped comparison excludes 2020-21 to 2022-23. These years were heavily affected by COVID-19 border closures and the immediate border-reopening adjustment, which produced unusually disrupted migration patterns and made them less suitable for describing a stable geographic relationship between investor lending and migration demand.
-
-Instead, the mapped results were summarised over three representative periods:
-- 2004-05 to 2011-12,
-- 2012-13 to 2019-20,
-- 2023-24 to 2024-25.
-
-The first two periods divide the full pre-COVID sample into two equal-length stages, which avoids dropping intermediate years without a clear reason and makes the pre-COVID averages more comparable. The final period captures the most recent post-disruption geography using the latest available years.
-
-For each state $s$ and period $p$, the mapped value was the average of the annual gap over all years in that period:
+The mapped comparison excludes 2020-21 to 2022-23 and summarises three representative periods: 2004-05 to 2011-12, 2012-13 to 2019-20, and 2023-24 to 2024-25. For each state and period, the mapped value is the average annual gap:
 
 $$
 \overline{Gap}_{sp} = \frac{1}{T_p}\sum_{t \in p} Gap_{st}
 $$
 
-where $T_p$ is the number of financial years in period $p$.
+## Supplementary statistical checks {#sec-appendix-supplementary-tests}
 
-The maps therefore summarise how strongly investor lending and migration demand were aligned or misaligned across states in each of the three selected periods.
+This section reports supplementary statistical checks for the main conclusions in the report. These tests are used as robustness checks rather than formal proof. Because the project is exploratory and based on full ABS datasets, some conclusions are better treated as descriptive summaries than as hypotheses to be formally tested.
 
-```{r}
-#| label: app-q3-key-values
+### Q1: Permutation tests for the alignment between housing lending growth and wage growth
 
-q3_key_values_tbl <- bind_rows(
-  q3_highest_gap %>%
-    mutate(type = "Largest positive gap"),
-  q3_lowest_gap %>%
-    mutate(type = "Largest negative gap")) %>%
-  mutate(period = as.character(period), mean_gap_pp = round(mean_gap_pp, 1)) %>%
-  select(Period = period, Type = type, State = state, `Gap (pp)` = mean_gap_pp)
-
-q3_change_values_tbl <- q3_change_summary %>%
-  mutate(across(c(`2004-05 to 2011-12`, `2012-13 to 2019-20`, `2023-24 to 2024-25`, change_early_to_recent, change_precovid_to_recent), ~ round(.x, 1))) %>%
-  rename(State = state, `2004-05 to 2011-12` = `2004-05 to 2011-12`, `2012-13 to 2019-20` = `2012-13 to 2019-20`, `2023-24 to 2024-25` = `2023-24 to 2024-25`, `Change: early to recent` = change_early_to_recent, `Change: pre-COVID to recent` = change_precovid_to_recent)
-```
-
-### Largest positive and negative gaps in each period
+To check whether housing lending growth and wage growth moved closely together within states, I first matched the two annual growth series by state and financial year. For each state, I calculated the observed Pearson correlation between housing lending growth and wage growth. I then created a permutation distribution by keeping the wage-growth series fixed and randomly shuffling the housing-lending-growth series 5,000 times, recalculating the correlation each time. The permutation p-value is the proportion of shuffled correlations that were at least as extreme as the observed correlation. Large p-values suggest that the observed relationship could easily arise by chance, which is consistent with the conclusion that the two series did not closely align.
 
 ```{r}
-#| label: tbl-app-q3-key-values
+#| label: app-q1-perm-corr
 
-q3_key_values_tbl %>%
-  kable(caption = "Largest positive and negative investor--migration gaps across the three representative periods", align = c("l", "l", "l", "r")) %>%
-  kable_styling(full_width = FALSE, position = "center")
+set.seed(35717343)
+
+q1_align_data <- hf_state_fy %>%
+  select(financial_year, state, lending_growth_pct) %>%
+  left_join(
+    wpi_state_fy %>%
+      select(financial_year, state, wage_growth_pct),
+    by = c("financial_year", "state")) %>%
+  filter(!is.na(lending_growth_pct), !is.na(wage_growth_pct))
+
+perm_cor_test <- function(x, y, B = 5000) {
+  obs <- cor(x, y)
+  perm <- replicate(B, cor(sample(x), y))
+  p_val <- mean(abs(perm) >= abs(obs))
+  tibble(observed_correlation = obs, p_value = p_val)
+}
+
+q1_perm_corr_tbl <- q1_align_data %>%
+  group_by(state) %>%
+  group_modify(~ perm_cor_test(.x$lending_growth_pct, .x$wage_growth_pct)) %>%
+  ungroup() %>%
+  mutate(observed_correlation = round(observed_correlation, 3), p_value = round(p_value, 3))
 ```
-
-### Average investor-migration gaps by state and period
 
 ```{r}
-#| label: tbl-app-q3-change-values
+#| label: tbl-app-q1-perm-corr
 
-q3_change_values_tbl %>%
-  kable(caption = "Average investor-migration gaps by state and period, with changes over time", align = c("l", "r", "r", "r", "r", "r"), booktabs = TRUE, escape = FALSE,
-    col.names = c("State", "2004-05 to 2011-12", "2012-13 to 2019-20", "2023-24 to 2024-25", "Change: early to recent", "Change: pre-COVID to recent")) %>%
-  column_spec(1, width = "3cm") %>%
-  column_spec(2:6, width = "2cm") %>%
-  kable_styling(full_width = FALSE, position = "center", latex_options = c("hold_position", "scale_down"))
+q1_perm_corr_tbl %>%
+  kable(caption = "Permutation tests for within-state correlations between housing lending growth and wage growth", col.names = c("State", "Observed correlation", "Permutation p-value")) %>%
+  kable_styling(full_width = FALSE)
 ```
 
+To support the conclusion that New South Wales was more investor-oriented than the national benchmark, I compared its investor share with the national investor share in each financial year. I then counted the number of years in which New South Wales was above the national benchmark. Under a simple null benchmark of 50%, New South Wales would be expected to be above the national share in about half of all years. I used an exact binomial test to assess whether the observed proportion was substantially greater than this benchmark. A small p-value supports the interpretation that New South Wales was above the national investor share more often than would be expected by chance.
+
+```{r}
+#| label: app-q1-binomial-nsw
+
+nsw_vs_nat <- investor_share_value_state %>%
+  filter(state == "New South Wales") %>%
+  select(financial_year, share) %>%
+  left_join(
+    investor_share_value_nat %>%
+      select(financial_year, nat_share = share), by = "financial_year") %>%
+  mutate(above_nat = share > nat_share)
+
+nsw_binom <- binom.test(x = sum(nsw_vs_nat$above_nat), n = nrow(nsw_vs_nat), p = 0.5, alternative = "greater")
+
+q1_nsw_binom_tbl <- tibble(
+  years_above_national = sum(nsw_vs_nat$above_nat),
+  total_years = nrow(nsw_vs_nat),
+  proportion_above = round(mean(nsw_vs_nat$above_nat), 3),
+  p_value = round(nsw_binom$p.value, 4))
+```
+
+```{r}
+#| label: tbl-app-q1-binomial-nsw
+
+q1_nsw_binom_tbl %>%
+  kable(caption = "Exact binomial test for New South Wales exceeding the national investor share") %>%
+  kable_styling(full_width = FALSE)
+```
+
+### Q2: Permutation test for the rise of Southern and Central Asia in national migrant inflows
+
+To support the conclusion that Southern and Central Asia became more prominent over time, I used the national yearly share of positive inflows from this region and compared it with the order of financial years. I first calculated the observed Spearman correlation between the time index and the yearly share, since this statistic is suitable for checking a monotonic trend over time. I then randomly shuffled the time index 5,000 times and recalculated the Spearman correlation each time to form a permutation distribution. The p-value is the proportion of shuffled correlations that were at least as large as the observed one. A strong positive association with a small p-value supports the long-run upward shift seen in the heatmap.
+
+```{r}
+#| label: app-q2-sca-trend
+
+set.seed(35717343)
+
+q2_sca_trend <- nat_origin_shift %>%
+  filter(origin_group == "Southern & Central Asia") %>%
+  arrange(financial_year) %>%
+  mutate(time_index = row_number())
+
+obs_sca_rho <- cor(q2_sca_trend$time_index, q2_sca_trend$share, method = "spearman")
+
+perm_sca_rho <- replicate(5000, cor(sample(q2_sca_trend$time_index), q2_sca_trend$share, method = "spearman"))
+
+q2_sca_trend_tbl <- tibble(
+  observed_spearman = round(obs_sca_rho, 3),
+  p_value = round(mean(perm_sca_rho >= obs_sca_rho), 4))
+```
+
+```{r}
+#| label: tbl-app-q2-sca-trend
+
+q2_sca_trend_tbl %>%
+  kable(caption = "Permutation test for the upward trend in the Southern and Central Asia share of national positive migrant inflows") %>%
+  kable_styling(full_width = FALSE)
+```
+
+### Q2: Permutation tests for within-state slopes
+
+To check whether the within-state relationships between migrant-origin concentration and economic outcomes were stronger than expected by chance, I used the state-level centred data from the main analysis. For each state and each outcome, I first estimated the observed slope from a simple linear regression of the centred outcome on centred migrant-origin concentration. I then kept the HHI series fixed and randomly shuffled the outcome values 5,000 times, recalculating the slope each time. This produced a permutation distribution under the assumption that there was no systematic relationship between the two variables within that state. The permutation p-value is the proportion of shuffled slopes that were at least as extreme as the observed slope. Smaller p-values indicate stronger evidence that the observed within-state relationship was unlikely to arise by chance.
+
+```{r}
+#| label: app-q2-perm-slopes
+
+set.seed(35717343)
+
+perm_slope_test <- function(x, y, B = 5000) {
+  obs <- coef(lm(y ~ x))[2]
+  perm <- replicate(B, coef(lm(sample(y) ~ x))[2])
+  p_val <- mean(abs(perm) >= abs(obs))
+  tibble(observed_slope = obs, p_value = p_val)
+}
+
+q2_perm_wage_tbl <- q2_dev %>%
+  group_by(state) %>%
+  group_modify(~ perm_slope_test(.x$hhi_dev, .x$wage_dev)) %>%
+  ungroup() %>%
+  mutate(outcome = "Wage growth")
+
+q2_perm_lending_tbl <- q2_dev %>%
+  group_by(state) %>%
+  group_modify(~ perm_slope_test(.x$hhi_dev, .x$lending_dev)) %>%
+  ungroup() %>%
+  mutate(outcome = "Housing lending growth")
+
+q2_perm_slopes_tbl <- bind_rows(q2_perm_wage_tbl, q2_perm_lending_tbl) %>%
+  mutate(observed_slope = round(observed_slope, 2), p_value = round(p_value, 3)) %>%
+  select(State = state, Outcome = outcome, `Observed slope` = observed_slope, `Permutation p-value` = p_value)
+```
+
+```{r}
+#| label: tbl-app-q2-perm-slopes
+
+q2_perm_slopes_tbl %>%
+  kable(caption = "Permutation tests for within-state slopes between migrant-origin concentration and economic outcomes") %>%
+  kable_styling(full_width = FALSE)
+```
+
+### Q3: Randomisation test for whether the investor-migration gap became less even over time
+
+To support the conclusion that the geography of the investor-migration gap became less even over time, I compared the cross-state dispersion of the average gap in the early period and the recent period. I first reshaped the state-level averages so that each state had one early-period value and one recent-period value, and then calculated the observed difference in variance between the two periods. To assess whether this increase could arise by chance, I used an exact randomisation test that swaps the early and recent labels within each state in all possible combinations. For each relabelling, I recalculated the variance difference to generate the reference distribution. The p-value is the proportion of randomised variance differences that were at least as large as the observed one. A positive observed difference with a small p-value supports the conclusion that the gap became more geographically concentrated over time.
+
+```{r}
+#| label: app-q3-dispersion-test
+
+q3_dispersion_data <- q3_map_periods %>%
+  filter(period %in% c("2004-05 to 2011-12", "2023-24 to 2024-25")) %>%
+  select(state, period, mean_gap_pp) %>%
+  pivot_wider(names_from = period, values_from = mean_gap_pp) %>%
+  rename(early = `2004-05 to 2011-12`, recent = `2023-24 to 2024-25`)
+
+obs_diff_var <- var(q3_dispersion_data$recent) - var(q3_dispersion_data$early)
+
+swap_grid <- expand.grid(rep(list(c(FALSE, TRUE)), nrow(q3_dispersion_data)))
+
+perm_diff_var <- apply(swap_grid, 1, function(swap_row) {
+  swap_row <- as.logical(swap_row)
+  
+  early_perm <- ifelse(swap_row, q3_dispersion_data$recent, q3_dispersion_data$early)
+  recent_perm <- ifelse(swap_row, q3_dispersion_data$early, q3_dispersion_data$recent)
+  
+  var(recent_perm) - var(early_perm)
+})
+
+q3_dispersion_test_tbl <- tibble(observed_variance_difference = round(obs_diff_var, 3), p_value = round(mean(perm_diff_var >= obs_diff_var), 4))
+```
+
+```{r}
+#| label: tbl-app-q3-dispersion-test
+
+q3_dispersion_test_tbl %>%
+  kable(caption = "Exact randomisation test for whether the cross-state dispersion of the investor-migration gap was larger in the recent period than in the early period") %>%
+  kable_styling(full_width = FALSE)
+```
