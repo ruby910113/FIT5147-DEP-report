@@ -40,7 +40,9 @@ Student ID: 35717343\\[1.2cm]
 
 FIT5147 Data Exploration and Visualization\\
 Semester 1, 2026\\
-Monash University\\[1.2cm]
+Monash University\\
+Tutors: Bruno Mendivez \& Simone Rusin\\
+Applied class: Applied 01\\[1.2cm]
 
 29 March 2026
 \end{center}
@@ -653,7 +655,7 @@ q2_dev <- om_country_concentration %>%
   left_join(
     hf_state_fy %>%
       select(financial_year, state, lending_growth_pct), by = c("financial_year", "state")) %>%
-  filter(!is.na(wage_growth_pct), !is.na(lending_growth_pct)) %>%
+  filter(!is.na(wage_growth_pct), !is.na(lending_growth_pct), !financial_year %in% c("2020-21", "2021-22", "2022-23")) %>%
   group_by(state) %>%
   mutate(hhi_dev = country_hhi - mean(country_hhi, na.rm = TRUE), wage_dev = wage_growth_pct - mean(wage_growth_pct, na.rm = TRUE), lending_dev = lending_growth_pct - mean(lending_growth_pct, na.rm = TRUE)) %>%
   ungroup()
@@ -778,15 +780,17 @@ ggplot(om_origin_state, aes(x = start_year, y = origin_group, fill = share)) +
 
 ### Within-state relationships between migrant-origin concentration and economic outcomes
 
-To summarise the relationship more clearly, I estimated a separate within-state slope for each state rather than plotting all state-years directly. Migrant-origin concentration was measured using a Herfindahl index (HHI), where higher values indicate that migrant inflows were concentrated in fewer countries of birth. I then examined whether years with relatively higher concentration within each state also tended to have relatively higher wage growth or housing lending growth. To reduce the influence of unusual observations, I used robust regression and plotted the resulting coefficients with 95% confidence intervals in @fig-q2-within-state-coef. Further calculation details for this within-state analysis are provided in the [Appendix](#sec-appendix-within-state).
+To make the relationship easier to compare, I estimated a separate within-state slope for each state instead of plotting all state-years directly. Migrant-origin concentration was measured using a Herfindahl index (HHI), where higher values indicate that migrant inflows were concentrated in fewer countries of birth. I then examined whether years with relatively higher concentration within each state also tended to have relatively higher wage growth or housing lending growth. To reduce the influence of pandemic-related disruption, I excluded 2020-21 to 2022-23 from this within-state analysis and estimated robust regression models on the remaining years. The resulting coefficients and 95% confidence intervals are shown in @fig-q2-within-state-coef. 
 
-In @fig-q2-within-state-coef, positive coefficients indicate that, within a state, years with more concentrated migrant inflows tended to coincide with stronger-than-usual economic growth, while negative coefficients indicate the opposite. In the wage-growth panel, 7 of the 8 states have negative coefficients, with the strongest negative slopes appearing in New South Wales (`r round(wage_nsw_est, 1)`) and the Australian Capital Territory (`r round(wage_act_est, 1)`). The confidence intervals for New South Wales, Victoria, Tasmania, and the Australian Capital Territory remain below zero, suggesting that higher migrant-origin concentration was associated with weaker-than-usual wage growth in these states. 
+Further calculation details for this within-state analysis are provided in @sec-appendix-within-state, and additional diagnostics for the excluded years are reported in @sec-appendix-excluded-years.
 
-By contrast, the housing-lending panel is more mixed, with 5 of the 8 states have positive coefficients, but only Northern Territory and Tasmania have intervals that remain clearly above zero, with estimated slopes of about `r round(lending_nt_est, 1)` and `r round(lending_tas_est, 1)` respectively. The remaining states have wide intervals that cross zero. Overall, these results suggest that while migrant origins and settlement patterns changed substantially across states, higher migrant-origin concentration was more consistently linked to weaker wage growth than to housing lending growth, and its relationship with housing lending remained uneven across Australia.
+In @fig-q2-within-state-coef, positive coefficients indicate that, within a state, years with more concentrated migrant inflows tended to coincide with higher economic outcomes, while negative coefficients indicate the opposite. In the wage-growth panel, most states still have negative coefficients, which suggests that more concentrated migrant inflows were often linked to lower wage growth within states. This pattern is most visible in New South Wales, Tasmania, the Australian Capital Territory, and Northern Territory, where the intervals stay below zero. Queensland stands out as the main exception, showing a positive relationship, while the other states are closer to zero and less clear.
+
+The housing-lending panel is more mixed. Most states are on the negative side of zero, but the intervals are wide and usually cross zero, so the relationship is not very clear in most cases. Tasmania is the main exception, because it remains clearly positive and stands out from the other states. Overall, this figure suggests that migrant-origin concentration has a clearer relationship with wage growth than with housing lending growth, but the pattern still differs across states.
 
 ```{r}
 #| label: fig-q2-within-state-coef
-#| fig-cap: Robust within-state associations between migrant-origin concentration and economic outcomes, 2005-06 to 2024-25. Coefficients are estimated from state-specific robust regressions using deviations from each state’s own average level. Positive coefficients indicate that years with above-average migrant-origin concentration tend to coincide with above-average economic growth within the same state.
+#| fig-cap: Robust within-state associations between migrant-origin concentration and economic outcomes, excluding 2020-21 to 2022-23. Coefficients are estimated from state-specific robust regressions using deviations from each state’s own average level. Positive coefficients indicate that years with above-average migrant-origin concentration tend to coincide with above-average economic growth within the same state.
 #| fig-width: 10
 #| fig-height: 5
 
@@ -803,7 +807,9 @@ ggplot(q2_coef_plot_robust, aes(x = estimate, y = state, colour = state)) +
 
 ### Summary of findings
 
-Overall, @fig-q2-origin-heatmap and @fig-q2-within-state-coef suggest that the origins of overseas migrants and their settlement patterns changed substantially across Australian states over time. Migrant inflows became increasingly dominated by Southern and Central Asia, but this shift was not uniform across Australia, with Victoria and the Australian Capital Territory showing stronger concentration in Southern and Central Asian inflows, while Western Australia retained a more visible North-West European component. However, these changes in migrant origins were not associated with stronger economic outcomes in any consistent way. Within states, higher migrant-origin concentration was more often linked to weaker wage growth, while its relationship with housing lending growth was mixed and uneven across Australia.
+Overall, @fig-q2-origin-heatmap and @fig-q2-within-state-coef suggest that migrant origins and state settlement patterns changed clearly over time, but their links with wage growth and housing lending were less consistent. Migrant inflows became increasingly dominated by Southern and Central Asia, although this change was not the same across all states. Victoria and the Australian Capital Territory became more concentrated in Southern and Central Asian inflows, while Western Australia kept a more visible North-West European component.
+
+These differences in migrant origins and settlement patterns did not lead to one clear economic pattern across Australia. The within-state results suggest that migrant-origin concentration was more often linked to wage growth than to housing lending growth, but the direction and strength of this relationship still differed across states. Overall, this means that changes in migrant origins and settlement patterns were an important part of the data, but their links with wage growth and housing lending were uneven rather than uniform across Australia.
 
 ## Where are the largest gaps between investor lending and migration demand across Australian states, and how has this geography changed over time?
 
@@ -895,11 +901,13 @@ q3_tableau_maps <- q3_map_periods %>%
   select(country, state, period, mean_gap_pp, mean_investor_share, mean_migration_share, label_text)
 ```
 
-To reduce the influence of unusually disrupted migration patterns during the pandemic period and the immediate reopening adjustment, I exclude 2020-21 to 2022-23 from the mapped comparison. I then compare three representative periods, namely an earlier period (2004-05 to 2011-12), a middle period (2012-13 to 2019-20), and a recent period (2023-24 to 2024-25). Averaging within each period makes state differences easier to compare visually.
+To reduce the influence of unusually disrupted migration patterns during the pandemic period and the immediate reopening adjustment, I exclude 2020-21 to 2022-23 from the mapped comparison. In this section, migration demand is proxied by each state’s share of positive overseas migrant inflows, and the gap is defined as investor lending share minus migration-demand share. I then compare three representative periods, namely an earlier period (2004-05 to 2011-12), a middle period (2012-13 to 2019-20), and a recent period (2023-24 to 2024-25). Averaging within each period makes state differences easier to compare visually.
 
-In @fig-q3-maps, blue states indicate that investor lending is stronger than migration demand, while orange states indicate the opposite. Queensland remains blue throughout, although the shade becomes lighter in the middle period before returning to a stronger blue in the recent period. Western Australia, by contrast, remains consistently orange across all three maps. Northern Territory stays close to neutral overall, but shifts slightly towards light orange in the middle and recent periods. New South Wales shows the clearest positive shift, moving from near-neutral in the earlier period to a much darker blue in the middle period and then remaining strongly blue in the recent period. Australian Capital Territory and Tasmania show a similar pattern, staying close to neutral throughout, with only a small movement from slightly blue towards slightly orange. South Australia is less stable, shifting from slightly blue to orange in the middle period before returning to near neutral in the recent period. Victoria shows the clearest negative pattern, remaining orange in all three periods and becoming darker over time. 
+Further calculation details for this gap measure are provided in @sec-appendix-q3-gap, and the excluded years are summarised separately in @sec-appendix-excluded-years.
 
-Overall, @fig-q3-maps suggests that the investor–migration gap becomes less even over time. The strongest mismatches are concentrated in a small number of states, especially New South Wales and Victoria, but in opposite directions. This pattern is consistent with @fig-q1-structure-value, where New South Wales appears as the most investor-oriented market, and it also complements @fig-q2-origin-heatmap, which shows that migrant settlement patterns remain uneven across states. Further calculation details for this gap measure are provided in @sec-appendix-q3-gap. 
+In @fig-q3-maps, blue states indicate that investor lending is stronger than migration demand, while orange states indicate the opposite. The largest positive gap in the early period is in Queensland, while the largest negative gap is in Western Australia. In the middle and recent periods, New South Wales has the largest positive gap, whereas Victoria has the largest negative gap. This shows that the geography of mismatch becomes more concentrated over time. Queensland remains positive throughout, although the gap becomes smaller in the middle period before returning to a stronger positive value in the recent period. Western Australia remains negative across all three periods. Northern Territory stays close to neutral overall but is slightly negative in the middle and recent periods. The Australian Capital Territory remains close to neutral but slightly positive throughout, while Tasmania shifts from slightly positive in the early period to slightly negative in the later periods. South Australia is less stable, moving from slightly positive to negative in the middle period before returning to near neutral in the recent period.
+
+Overall, @fig-q3-maps suggests that the investor-migration gap becomes less even over time. The strongest mismatches are concentrated in a small number of states, especially New South Wales and Victoria, but in opposite directions. This pattern is consistent with @fig-q1-structure-value, where New South Wales appears as the most investor-oriented market, and it also complements @fig-q2-origin-heatmap, which shows that migrant settlement patterns remain uneven across states. This suggests that investor activity and migration-related housing demand are not distributed evenly across Australian states, which helps explain why housing pressure may be experienced differently across state housing markets. 
 
 ```{r}
 #| label: fig-q3-maps
@@ -913,7 +921,7 @@ map_img <- image_read_pdf("figure/comb_map.pdf", density = 300)
 
 subtitle_grob <- gridtext::richtext_grob(
   "<span style='color:#2C7FB8; font-weight:600;'>Blue</span> = higher investor lending than migration demand<br>
-   <span style='color:#E67E22; font-weight:600;'>Orange</span> = higher migration demand than investor lending", hjust = 0.5, vjust = 0.5, gp = gpar(fontsize = 15, fontface = "bold"), box_gp = gpar(col = NA, fill = NA))
+   <span style='color:#E67E22; font-weight:600;'>Orange</span> = higher migration demand than investor lending", hjust = 0.5, gp = gpar(fontsize = 15, fontface = "bold"), box_gp = gpar(col = NA, fill = NA))
 
 title_plot <- ggdraw() +
   draw_label("Geographic Gaps Between\nInvestor Lending and Migration Demand Across Australian States", hjust = 0.5, vjust = 0.5, fontface = "bold", size = 18, lineheight = 1.05) +
@@ -938,6 +946,121 @@ plot_grid(title_plot, image_plot, ncol = 1, rel_heights = c(0.14, 0.86))
 \appendix
 
 # Appendix
+
+## Diagnostics and excluded-year checks for Questions 2 and 3 {#sec-appendix-excluded-years}
+
+This section provides additional checks for the years excluded from the Question 2 and Question 3 analyses. For Question 2, I report influence diagnostics for 2020-21, since this was the year that showed the clearest influence in the state-specific regression models. For Question 3, because the analysis is descriptive rather than regression-based, leverage and Cook's distance are not appropriate. Instead, I report the investor--migration gaps for the excluded years directly, so that these years can be compared with the representative mapped periods.
+
+### Q2: Influence diagnostics for 2020-21
+
+For the within-state regression analysis in Question 2, I first estimated state-specific linear models on the full sample before exclusion and then calculated leverage and Cook's distance for each state-year observation. Leverage was used to identify observations with unusual predictor values, while Cook's distance was used to assess how strongly each observation influenced the fitted slope. The diagnostics show that 2020-21 was the most clearly influential year in several state-level models, while 2021-22 and 2022-23 were generally less influential. These diagnostics were used only to assess influence. The final coefficients shown in @fig-q2-within-state-coef were still estimated using robust regression after excluding 2020-21 to 2022-23.
+
+```{r}
+#| label: app-q2-influence-data
+
+q2_dev_full <- om_country_concentration %>%
+  left_join(
+    wpi_state_fy %>%
+      select(financial_year, state, wage_growth_pct),
+    by = c("financial_year", "state")) %>%
+  left_join(
+    hf_state_fy %>%
+      select(financial_year, state, lending_growth_pct),
+    by = c("financial_year", "state")) %>%
+  filter(!is.na(wage_growth_pct), !is.na(lending_growth_pct)) %>%
+  group_by(state) %>%
+  mutate(hhi_dev = country_hhi - mean(country_hhi, na.rm = TRUE), wage_dev = wage_growth_pct - mean(wage_growth_pct, na.rm = TRUE), lending_dev = lending_growth_pct - mean(lending_growth_pct, na.rm = TRUE)) %>%
+  ungroup()
+
+fit_influence_diag <- function(data, outcome_var, outcome_label) {
+  
+  fit <- lm(reformulate("hhi_dev", outcome_var), data = data)
+  
+  n <- nobs(fit)
+  p <- length(coef(fit))   
+  lev_cutoff <- 2 * p / n
+  cook_cutoff <- 4 / n
+  
+  tibble(
+    financial_year = data$financial_year,
+    outcome = outcome_label,
+    leverage = hatvalues(fit),
+    cooks_d = cooks.distance(fit),
+    leverage_cutoff = lev_cutoff,
+    cooks_cutoff = cook_cutoff,
+    high_leverage = leverage > leverage_cutoff,
+    high_cooks_d = cooks_d > cooks_cutoff)
+}
+
+q2_influence_wage <- q2_dev_full %>%
+  group_by(state) %>%
+  group_modify(~ fit_influence_diag(.x, "wage_dev", "Wage growth")) %>%
+  ungroup()
+
+q2_influence_lending <- q2_dev_full %>%
+  group_by(state) %>%
+  group_modify(~ fit_influence_diag(.x, "lending_dev", "Housing lending growth")) %>%
+  ungroup()
+
+q2_influence_all <- bind_rows(q2_influence_wage, q2_influence_lending)
+
+q2_influence_2020_tbl <- q2_influence_all %>%
+  filter(financial_year == "2020-21") %>%
+  mutate(leverage = round(leverage, 3), cooks_d = round(cooks_d, 3), leverage_cutoff = round(leverage_cutoff, 3), cooks_cutoff = round(cooks_cutoff, 3), `High leverage` = if_else(high_leverage, "Yes", "No"), `High Cook's D` = if_else(high_cooks_d, "Yes", "No")) %>%
+  select(State = state, Outcome = outcome, FY = financial_year, Lev = leverage, `Lev cut` = leverage_cutoff, Cook = cooks_d, `Cook cut` = cooks_cutoff, `High lev` = `High leverage`, `High Cook` = `High Cook's D`) %>%
+  arrange(Outcome, desc(Cook))
+```
+
+```{r}
+#| label: tbl-app-q2-influence-2020
+
+q2_influence_2020_tbl %>%
+  kable(caption = "Leverage and Cook's distance for 2020-21 in the Question 2 within-state analysis", align = c("l", "l", "c", "r", "r", "r", "r", "c", "c"), booktabs = TRUE) %>%
+  column_spec(1, width = "3.2cm") %>%
+  column_spec(2, width = "3cm") %>%
+  kable_styling(full_width = FALSE, position = "center", font_size = 8, latex_options = c("scale_down", "hold_position"))
+```
+
+### Q3: Investor--migration gaps in the excluded years
+
+For Question 3, the excluded years were not part of a regression model, so leverage and Cook's distance were not used. Instead, Table @tbl-app-q3-excluded-years reports the investor--migration gap for 2020-21 to 2022-23 directly. This makes it easier to see why these years were excluded from the mapped comparison periods. These years reflect the pandemic period and the immediate reopening adjustment, when migration patterns were unusually disrupted and less suitable for representing a stable geographic pattern.
+
+```{r}
+#| label: app-q3-excluded-years
+
+q3_excluded_years_tbl <- housing_finance %>%
+  filter(state %in% state_levels, loan_type == "investor", value_type == "Value", series_type == "Original", financial_year %in% c("2020-21", "2021-22", "2022-23")) %>%
+  group_by(financial_year, state) %>%
+  summarise(investor_value = sum(housing_finance, na.rm = TRUE), .groups = "drop") %>%
+  group_by(financial_year) %>%
+  mutate(total_investor_value = sum(investor_value, na.rm = TRUE),
+    investor_share = investor_value / total_investor_value) %>%
+  ungroup() %>%
+  left_join(
+    overseas_migration %>%
+      filter(state %in% state_levels, country_of_birth != "Australia", financial_year %in% c("2020-21", "2021-22", "2022-23")) %>%
+      mutate(pos_nom = pmax(net_overseas_migration, 0)) %>%
+      group_by(financial_year, state) %>%
+      summarise(pos_nom = sum(pos_nom, na.rm = TRUE), .groups = "drop") %>%
+      group_by(financial_year) %>%
+      mutate(total_pos_nom = sum(pos_nom, na.rm = TRUE), migration_share = pos_nom / total_pos_nom) %>%
+      ungroup() %>%
+      select(financial_year, state, migration_share),
+    by = c("financial_year", "state")) %>%
+  mutate(investor_share = round(investor_share * 100, 1), migration_share = round(migration_share * 100, 1), gap_pp = round(investor_share - migration_share, 1)) %>%
+  select(State = state, `Financial year` = financial_year, `Investor share (%)` = investor_share, `Migration share (%)` = migration_share, `Gap (pp)` = gap_pp) %>%
+  arrange(`Financial year`, State)
+```
+
+```{r}
+#| label: tbl-app-q3-excluded-years
+
+q3_excluded_years_tbl %>%
+  kable(caption = "Investor--migration gaps in the excluded years for Question 3", align = c("l", "c", "r", "r", "r"), booktabs = TRUE) %>%
+  column_spec(1, width = "3.2cm") %>%
+  kable_styling(full_width = FALSE, position = "center", latex_options = c("scale_down", "hold_position"))
+```
+
 
 ## Key calculated values for Housing Lending, Wage Growth and Lending Structure Across Australian States
 
@@ -1014,7 +1137,7 @@ q1_investor_numbers_tbl %>%
   kable_styling(full_width = FALSE, position = "center", latex_options = "hold_position")
 ```
 
-## Further calculation details for Within-State Links Between Migrant-Origin Concentration and Economic Outcomes
+## Further calculation details for Within-State Links Between Migrant-Origin Concentration and Economic Outcomes {#sec-appendix-within-state}
 
 This appendix provides further details of the calculation used in the figure titled *Within-State Links Between Migrant-Origin Concentration and Economic Outcomes*.
 
@@ -1032,7 +1155,9 @@ $$
 
 A higher HHI indicates that migrant inflows were more concentrated in fewer countries of birth, while a lower HHI indicates a more diverse origin mix.
 
-To focus on within-state variation rather than long-run differences between states, migrant-origin concentration, wage growth, and housing lending growth were centred around each state’s own average level:
+The within-state regression analysis excludes 2020-21 to 2022-23. The influence diagnostics show that 2020-21 was the most clearly influential year in several state-level models, especially for housing lending growth. By contrast, 2021-22 and 2022-23 were less influential in most cases. However, these years were still excluded because they belong to the broader pandemic and reopening adjustment period, during which migration patterns remained unusually disrupted. Excluding all three years therefore reflects both the diagnostics and the substantive instability of this period. Excluding these years makes the within-state relationships more stable and easier to interpret.
+
+To focus on within-state variation rather than long-run differences between states, migrant-origin concentration, wage growth, and housing lending growth were centred around each state's own average level using the remaining years in the estimation sample:
 
 $$
 HHI^{dev}_{st} = HHI_{st} - \bar{HHI}_s
@@ -1046,7 +1171,7 @@ $$
 LEND^{dev}_{st} = LEND_{st} - \overline{LEND}_s
 $$
 
-where $\bar{HHI}_s$, $\overline{WAGE}_s$, and $\overline{LEND}_s$ are the long-run state averages for each state.
+where $\bar{HHI}_s$, $\overline{WAGE}_s$, and $\overline{LEND}_s$ are the state-specific sample averages after excluding 2020-21 to 2022-23.
 
 Separate robust regression models were then estimated for each state. For wage growth, the model was:
 
@@ -1066,22 +1191,14 @@ The coefficient $\beta_s$ measures whether years with above-average migrant-orig
 #| label: app-q2-key-values
 
 q2_origin_numbers_tbl <- tibble(
-  Measure = c("Southern and Central Asia share of positive overseas migrant inflows",
-              "Southern and Central Asia share of positive overseas migrant inflows",
-              "Southern and Central Asia share of positive inflows",
-              "Southern and Central Asia share of positive inflows",
-              "North-West Europe share of positive inflows"),
-  Geography = c("Australia", "Australia", "Australian Capital Territory", "Victoria", "Western Australia"),
-  `Financial year` = c("2004-05", "2024-25", "2024-25", "2024-25", "2024-25"),
-  Value = c(sca_2004, sca_2024, act_sca_2024, vic_sca_2024, wa_nwe_2024)) %>%
+  Measure = c("Southern and Central Asia share of positive overseas migrant inflows", "Southern and Central Asia share of positive overseas migrant inflows", "Southern and Central Asia share of positive inflows", "Southern and Central Asia share of positive inflows", "North-West Europe share of positive inflows"), Geography = c("Australia", "Australia", "Australian Capital Territory", "Victoria", "Western Australia"), `Financial year` = c("2004-05", "2024-25", "2024-25", "2024-25", "2024-25"), Value = c(sca_2004, sca_2024, act_sca_2024, vic_sca_2024, wa_nwe_2024)) %>%
   mutate(Value = scales::percent(Value, accuracy = 0.1))
 
 q2_robust_key_tbl <- q2_coef_plot_robust %>%
-  filter((indicator == "Wage growth" & state %in% c("New South Wales", "Victoria", "Tasmania", "Australian Capital Territory")) |
-      (indicator == "Housing lending growth" & state %in% c("Northern Territory", "Tasmania"))) %>%
-  mutate(state = as.character(state), estimate = round(estimate, 1),
-         conf.low = round(conf.low, 1), conf.high = round(conf.high, 1),
-         `95% CI` = paste0("[", conf.low, ", ", conf.high, "]")) %>%
+  filter((indicator == "Wage growth" &
+       state %in% c("New South Wales", "Tasmania", "Australian Capital Territory", "Northern Territory")) |
+      (indicator == "Housing lending growth" & state %in% c("Tasmania", "Queensland", "Western Australia", "Victoria"))) %>%
+  mutate(state = as.character(state), estimate = round(estimate, 1), conf.low = round(conf.low, 1), conf.high = round(conf.high, 1), `95% CI` = paste0("[", conf.low, ", ", conf.high, "]")) %>%
   select(State = state, `Economic outcome` = indicator, Estimate = estimate, `95% CI`)
 ```
 
@@ -1102,7 +1219,7 @@ q2_origin_numbers_tbl %>%
 #| label: tbl-app-q2-robust-values
 
 q2_robust_key_tbl %>%
-  kable(caption = "Main robust regression coefficients and confidence intervals cited in the within-state analysis of migrant-origin concentration and economic outcomes", align = c("l", "l", "r", "c")) %>% 
+  kable(caption = "Main robust regression coefficients and confidence intervals cited in the within-state analysis of migrant-origin concentration and economic outcomes, excluding 2020-21 to 2022-23", align = c("l", "l", "r", "c")) %>%
   kable_styling(full_width = FALSE, position = "center")
 ```
 
@@ -1179,13 +1296,16 @@ q3_key_values_tbl %>%
   kable_styling(full_width = FALSE, position = "center")
 ```
 
-### Average investor--migration gaps by state and period
+### Average investor-migration gaps by state and period
 
 ```{r}
 #| label: tbl-app-q3-change-values
 
 q3_change_values_tbl %>%
-  kable(caption = "Average investor--migration gaps by state and period, with changes over time", align = c("l", "r", "r", "r", "r", "r")) %>%
-  kable_styling(full_width = FALSE, position = "center", latex_options = "scale_down")
+  kable(caption = "Average investor-migration gaps by state and period, with changes over time", align = c("l", "r", "r", "r", "r", "r"), booktabs = TRUE, escape = FALSE,
+    col.names = c("State", "2004-05 to 2011-12", "2012-13 to 2019-20", "2023-24 to 2024-25", "Change: early to recent", "Change: pre-COVID to recent")) %>%
+  column_spec(1, width = "3cm") %>%
+  column_spec(2:6, width = "2cm") %>%
+  kable_styling(full_width = FALSE, position = "center", latex_options = c("hold_position", "scale_down"))
 ```
 
