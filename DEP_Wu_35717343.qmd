@@ -84,6 +84,8 @@ library(MASS)
 library(conflicted)
 library(cowplot)
 library(magick)
+library(gridtext)
+library(grid)
 conflict_prefer("select", "dplyr")
 conflict_prefer("filter", "dplyr")
 conflict_prefer("lag", "dplyr")
@@ -807,75 +809,44 @@ Overall, @fig-q2-origin-heatmap and @fig-q2-within-state-coef suggest that the o
 
 ```{r}
 #| label: q3-prepare-data
+
 # Periods for the three Tableau maps
-q3_period_levels <- c(
-  "2004-05 to 2009-10",
-  "2014-15 to 2019-20",
-  "2023-24 to 2024-25"
-)
+q3_period_levels <- c("2004-05 to 2011-12", "2012-13 to 2019-20", "2023-24 to 2024-25")
 
 # ---------------------------------------------------------
 # 1. Migration demand: state share of positive migrant inflows
 # ---------------------------------------------------------
 q3_migration_state <- overseas_migration %>%
-  filter(
-    state %in% state_levels,
-    country_of_birth != "Australia"
-  ) %>%
+  filter(state %in% state_levels, country_of_birth != "Australia") %>%
   mutate(pos_nom = pmax(net_overseas_migration, 0)) %>%
   group_by(financial_year, state) %>%
-  summarise(
-    pos_nom = sum(pos_nom, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
+  summarise(pos_nom = sum(pos_nom, na.rm = TRUE), .groups = "drop") %>%
   group_by(financial_year) %>%
-  mutate(
-    total_pos_nom = sum(pos_nom, na.rm = TRUE),
-    migration_share = pos_nom / total_pos_nom
-  ) %>%
+  mutate(total_pos_nom = sum(pos_nom, na.rm = TRUE), migration_share = pos_nom / total_pos_nom) %>%
   ungroup()
 
 # ---------------------------------------------------------
 # 2. Investor lending: state share of investor lending value
 # ---------------------------------------------------------
 q3_investor_state <- housing_finance %>%
-  filter(
-    state %in% state_levels,
-    loan_type == "investor",
-    value_type == "Value",
-    series_type == "Original"
-  ) %>%
+  filter(state %in% state_levels, loan_type == "investor", value_type == "Value", series_type == "Original") %>%
   group_by(financial_year, state) %>%
-  summarise(
-    investor_value = sum(housing_finance, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
+  summarise(investor_value = sum(housing_finance, na.rm = TRUE), .groups = "drop") %>%
   group_by(financial_year) %>%
-  mutate(
-    total_investor_value = sum(investor_value, na.rm = TRUE),
-    investor_share = investor_value / total_investor_value
-  ) %>%
+  mutate(total_investor_value = sum(investor_value, na.rm = TRUE), investor_share = investor_value / total_investor_value) %>%
   ungroup()
 
 # ---------------------------------------------------------
 # 3. Gap = investor share - migration share
 # ---------------------------------------------------------
 q3_gap_yearly <- q3_investor_state %>%
-  left_join(
-    q3_migration_state %>%
-      select(financial_year, state, migration_share, pos_nom),
-    by = c("financial_year", "state")
-  ) %>%
-  mutate(
-    start_year = as.integer(str_sub(financial_year, 1, 4)),
-    gap_pp = (investor_share - migration_share) * 100,
-    period = case_when(
-      start_year >= 2004 & start_year <= 2009 ~ "2004-05 to 2009-10",
-      start_year >= 2014 & start_year <= 2019 ~ "2014-15 to 2019-20",
-      financial_year %in% c("2023-24", "2024-25") ~ "2023-24 to 2024-25",
-      TRUE ~ NA_character_
-    )
-  )
+  left_join(q3_migration_state %>%
+      select(financial_year, state, migration_share, pos_nom), by = c("financial_year", "state")) %>%
+  mutate(start_year = as.integer(str_sub(financial_year, 1, 4)), gap_pp = (investor_share - migration_share) * 100, period = case_when(
+    start_year >= 2004 & start_year <= 2011 ~ "2004-05 to 2011-12",
+    start_year >= 2012 & start_year <= 2019 ~ "2012-13 to 2019-20",
+    financial_year %in% c("2023-24", "2024-25") ~ "2023-24 to 2024-25",
+    TRUE ~ NA_character_))
 
 # ---------------------------------------------------------
 # 4. Average gap for each state within each map period
@@ -883,40 +854,21 @@ q3_gap_yearly <- q3_investor_state %>%
 q3_map_periods <- q3_gap_yearly %>%
   filter(!is.na(period)) %>%
   group_by(period, state) %>%
-  summarise(
-    mean_gap_pp = mean(gap_pp, na.rm = TRUE),
-    mean_investor_share = mean(investor_share, na.rm = TRUE) * 100,
-    mean_migration_share = mean(migration_share, na.rm = TRUE) * 100,
-    .groups = "drop"
-  ) %>%
-  mutate(
-    country = "Australia",
-    period = factor(period, levels = q3_period_levels),
-    label_text = paste0(
-      state, "\n",
-      sprintf("%+.1f pp", mean_gap_pp)
-    )
-  ) %>%
+  summarise(mean_gap_pp = mean(gap_pp, na.rm = TRUE), mean_investor_share = mean(investor_share, na.rm = TRUE) * 100, mean_migration_share = mean(migration_share, na.rm = TRUE) * 100, .groups = "drop") %>%
+  mutate(country = "Australia", period = factor(period, levels = q3_period_levels), label_text = paste0(state, "\n", sprintf("%+.1f pp", mean_gap_pp))) %>%
   arrange(period, state)
 
 # ---------------------------------------------------------
-# 5. Optional change table for writing
-#    This compares the recent period with the early period
+# 5. Change table for writing
 # ---------------------------------------------------------
 q3_change_summary <- q3_map_periods %>%
   select(period, state, mean_gap_pp) %>%
   pivot_wider(names_from = period, values_from = mean_gap_pp) %>%
-  mutate(
-    change_early_to_recent =
-      `2023-24 to 2024-25` - `2004-05 to 2009-10`,
-    change_precovid_to_recent =
-      `2023-24 to 2024-25` - `2014-15 to 2019-20`
-  ) %>%
+  mutate(change_early_to_recent = `2023-24 to 2024-25` - `2004-05 to 2011-12`, change_precovid_to_recent = `2023-24 to 2024-25` - `2012-13 to 2019-20`) %>%
   arrange(desc(change_early_to_recent))
 
 # ---------------------------------------------------------
-# 6. Tables for checking which states have the biggest positive
-#    and negative gaps in each period
+# 6. Tables for checking the biggest positive and negative gaps
 # ---------------------------------------------------------
 q3_highest_gap <- q3_map_periods %>%
   group_by(period) %>%
@@ -927,6 +879,11 @@ q3_lowest_gap <- q3_map_periods %>%
   group_by(period) %>%
   slice_min(mean_gap_pp, n = 1, with_ties = FALSE) %>%
   ungroup()
+
+# final
+q3_tableau_maps <- q3_map_periods %>%
+  mutate(period = as.character(period)) %>%
+  select(country, state, period, mean_gap_pp, mean_investor_share, mean_migration_share)
 ```
 
 ```{r}
@@ -938,6 +895,12 @@ q3_tableau_maps <- q3_map_periods %>%
   select(country, state, period, mean_gap_pp, mean_investor_share, mean_migration_share, label_text)
 ```
 
+To reduce the influence of unusually disrupted migration patterns during the pandemic period and the immediate reopening adjustment, I exclude 2020-21 to 2022-23 from the mapped comparison. I then compare three representative periods, namely an earlier period (2004-05 to 2011-12), a middle period (2012-13 to 2019-20), and a recent period (2023-24 to 2024-25). Averaging within each period makes state differences easier to compare visually.
+
+In @fig-q3-maps, blue states indicate that investor lending is stronger than migration demand, while orange states indicate the opposite. Queensland remains blue throughout, although the shade becomes lighter in the middle period before returning to a stronger blue in the recent period. Western Australia, by contrast, remains consistently orange across all three maps. Northern Territory stays close to neutral overall, but shifts slightly towards light orange in the middle and recent periods. New South Wales shows the clearest positive shift, moving from near-neutral in the earlier period to a much darker blue in the middle period and then remaining strongly blue in the recent period. Australian Capital Territory and Tasmania show a similar pattern, staying close to neutral throughout, with only a small movement from slightly blue towards slightly orange. South Australia is less stable, shifting from slightly blue to orange in the middle period before returning to near neutral in the recent period. Victoria shows the clearest negative pattern, remaining orange in all three periods and becoming darker over time. 
+
+Overall, @fig-q3-maps suggests that the investor–migration gap becomes less even over time. The strongest mismatches are concentrated in a small number of states, especially New South Wales and Victoria, but in opposite directions. This pattern is consistent with @fig-q1-structure-value, where New South Wales appears as the most investor-oriented market, and it also complements @fig-q2-origin-heatmap, which shows that migrant settlement patterns remain uneven across states. Further calculation details for this gap measure are provided in @sec-appendix-q3-gap. 
+
 ```{r}
 #| label: fig-q3-maps
 #| fig-cap: Average gaps between investor lending share and migration-demand share across Australian states in three representative periods. Positive values indicate that a state's share of investor lending exceeded its share of migration demand, while negative values indicate the opposite.
@@ -946,23 +909,22 @@ q3_tableau_maps <- q3_map_periods %>%
 #| fig-width: 10
 #| fig-height: 16
 
-map_img <- magick::image_read_pdf("figure/comb_map.pdf", density = 300)
+map_img <- image_read_pdf("figure/comb_map.pdf", density = 300)
+
+subtitle_grob <- gridtext::richtext_grob(
+  "<span style='color:#2C7FB8; font-weight:600;'>Blue</span> = higher investor lending than migration demand<br>
+   <span style='color:#E67E22; font-weight:600;'>Orange</span> = higher migration demand than investor lending", hjust = 0.5, vjust = 0.5, gp = gpar(fontsize = 15, fontface = "bold"), box_gp = gpar(col = NA, fill = NA))
 
 title_plot <- ggdraw() +
-  draw_label(
-    "Geographic Gaps Between Investor Lending\nand Migration Demand Across Australian States",
-    x = 0.5, y = 0.5,
-    hjust = 0.5,
-    vjust = 0.5,
-    fontface = "bold",
-    size = 18,
-    lineheight = 1.05)
-
-image_plot <- ggdraw() +
-  draw_image(map_img, x = 0, y = 0, width = 1, height = 1) +
+  draw_label("Geographic Gaps Between\nInvestor Lending and Migration Demand Across Australian States", hjust = 0.5, vjust = 0.5, fontface = "bold", size = 18, lineheight = 1.05) +
+  draw_grob(subtitle_grob, x = 0.15, width = 0.70, height = 0.24) +
   theme_void()
 
-plot_grid(title_plot, image_plot, ncol = 1, rel_heights = c(0.07, 0.93))
+image_plot <- ggdraw() +
+  draw_image(map_img, width = 1, height = 1) +
+  theme_void()
+
+plot_grid(title_plot, image_plot, ncol = 1, rel_heights = c(0.14, 0.86))
 ```
 
 \clearpage
@@ -1142,5 +1104,88 @@ q2_origin_numbers_tbl %>%
 q2_robust_key_tbl %>%
   kable(caption = "Main robust regression coefficients and confidence intervals cited in the within-state analysis of migrant-origin concentration and economic outcomes", align = c("l", "l", "r", "c")) %>% 
   kable_styling(full_width = FALSE, position = "center")
+```
+
+## Further calculation details for Geographic Gaps Between Investor Lending and Migration Demand {#sec-appendix-q3-gap}
+
+This appendix provides further details of the calculation used in the figure titled *Geographic Gaps Between Investor Lending and Migration Demand Across Australian States*.
+
+For each state $s$ and financial year $t$, migration demand was proxied by the state share of positive overseas migrant inflows:
+
+$$
+MigrationShare_{st} = \frac{PositiveNOM_{st}}{\sum_r PositiveNOM_{rt}}
+$$
+
+where $PositiveNOM_{st}$ is the total positive net overseas migration in state $s$ and year $t$, aggregated across all countries of birth except Australia. Positive inflows were used so that the measure captured the distribution of incoming migration demand across states.
+
+Investor activity was measured by the state share of investor lending value:
+
+$$
+InvestorShare_{st} = \frac{InvestorValue_{st}}{\sum_r InvestorValue_{rt}}
+$$
+
+where $InvestorValue_{st}$ is the total value of investor housing lending in state $s$ and year $t$.
+
+The investor--migration gap was then calculated as:
+
+$$
+Gap_{st} = 100 \times \left( InvestorShare_{st} - MigrationShare_{st} \right)
+$$
+
+This gap is expressed in percentage points. Positive values indicate that a state's share of investor lending was larger than its share of migration demand, while negative values indicate the opposite.
+
+The mapped comparison excludes 2020-21 to 2022-23. These years were heavily affected by COVID-19 border closures and the immediate border-reopening adjustment, which produced unusually disrupted migration patterns and made them less suitable for describing a stable geographic relationship between investor lending and migration demand.
+
+Instead, the mapped results were summarised over three representative periods:
+- 2004-05 to 2011-12,
+- 2012-13 to 2019-20,
+- 2023-24 to 2024-25.
+
+The first two periods divide the full pre-COVID sample into two equal-length stages, which avoids dropping intermediate years without a clear reason and makes the pre-COVID averages more comparable. The final period captures the most recent post-disruption geography using the latest available years.
+
+For each state $s$ and period $p$, the mapped value was the average of the annual gap over all years in that period:
+
+$$
+\overline{Gap}_{sp} = \frac{1}{T_p}\sum_{t \in p} Gap_{st}
+$$
+
+where $T_p$ is the number of financial years in period $p$.
+
+The maps therefore summarise how strongly investor lending and migration demand were aligned or misaligned across states in each of the three selected periods.
+
+```{r}
+#| label: app-q3-key-values
+
+q3_key_values_tbl <- bind_rows(
+  q3_highest_gap %>%
+    mutate(type = "Largest positive gap"),
+  q3_lowest_gap %>%
+    mutate(type = "Largest negative gap")) %>%
+  mutate(period = as.character(period), mean_gap_pp = round(mean_gap_pp, 1)) %>%
+  select(Period = period, Type = type, State = state, `Gap (pp)` = mean_gap_pp)
+
+q3_change_values_tbl <- q3_change_summary %>%
+  mutate(across(c(`2004-05 to 2011-12`, `2012-13 to 2019-20`, `2023-24 to 2024-25`, change_early_to_recent, change_precovid_to_recent), ~ round(.x, 1))) %>%
+  rename(State = state, `2004-05 to 2011-12` = `2004-05 to 2011-12`, `2012-13 to 2019-20` = `2012-13 to 2019-20`, `2023-24 to 2024-25` = `2023-24 to 2024-25`, `Change: early to recent` = change_early_to_recent, `Change: pre-COVID to recent` = change_precovid_to_recent)
+```
+
+### Largest positive and negative gaps in each period
+
+```{r}
+#| label: tbl-app-q3-key-values
+
+q3_key_values_tbl %>%
+  kable(caption = "Largest positive and negative investor--migration gaps across the three representative periods", align = c("l", "l", "l", "r")) %>%
+  kable_styling(full_width = FALSE, position = "center")
+```
+
+### Average investor--migration gaps by state and period
+
+```{r}
+#| label: tbl-app-q3-change-values
+
+q3_change_values_tbl %>%
+  kable(caption = "Average investor--migration gaps by state and period, with changes over time", align = c("l", "r", "r", "r", "r", "r")) %>%
+  kable_styling(full_width = FALSE, position = "center", latex_options = "scale_down")
 ```
 
