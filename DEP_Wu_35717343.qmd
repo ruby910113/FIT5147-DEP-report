@@ -389,7 +389,7 @@ This section explores the **relationships between housing lending, overseas migr
 
 ## Housing Lending, Wage Growth and Lending Structure Across Australian States
 
-To address the first research question, I compared annual housing lending growth with annual wage growth across Australian states from 2005-06 to 2024-25. I then examined whether these two measures moved together over time, and how the investor share of total lending value changed across states.
+To address the first research question, I compared annual housing lending growth with annual wage growth across Australian states from 2005-06 to 2024-25. I then examined whether these two measures moved together over time, and how the investor share of total lending value changed across states. Further calculation details for these measures are provided in @sec-appendix-q1-details.
 
 ```{r}
 #| label: q1-prepare-data
@@ -1077,6 +1077,28 @@ q3_excluded_years_tbl %>%
   column_spec(1, width = "3.2cm") %>%
   kable_styling(full_width = FALSE, position = "center", font_size = 8, latex_options = c("scale_down", "hold_position"))
 ```
+
+## Further calculation details for Housing Lending, Wage Growth and Lending Structure {#sec-appendix-q1-details}
+
+For Question 1, annual wage growth was calculated from the financial-year average of the Wage Price Index:
+
+$$
+WageGrowth_{st} = 100 \times \left( \frac{WPI_{st}}{WPI_{s,t-1}} - 1 \right)
+$$
+
+Annual housing lending growth was calculated from the total annual value of housing lending in each state:
+
+$$
+LendingGrowth_{st} = 100 \times \left( \frac{Lending_{st}}{Lending_{s,t-1}} - 1 \right)
+$$
+
+The investor share of lending value was calculated as:
+
+$$
+InvestorShare_{st} = \frac{InvestorValue_{st}}{InvestorValue_{st} + OwnerOccupierValue_{st}}
+$$
+
+These measures were based on the Original Value series and were used to compare lending growth, wage growth, and lending structure across states over time.
 
 ## Further calculation details for Within-State Links Between Migrant-Origin Concentration and Economic Outcomes {#sec-appendix-within-state}
 
