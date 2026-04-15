@@ -389,7 +389,7 @@ This section explores the **relationships between housing lending, overseas migr
 
 ## Housing Lending, Wage Growth and Lending Structure Across Australian States
 
-To address the first research question, I compared annual housing lending growth with annual wage growth across Australian states from 2005-06 to 2024-25. I then examined whether these two measures moved together over time, and how the investor share of total lending value changed across states. Further calculation details for these measures are provided in @sec-appendix-q1-details.
+To address the first research question, I used R to calculate and compare annual housing lending growth and annual wage growth across Australian states from 2005-06 to 2024-25. I then used line plots to examine whether these two measures moved together over time, and to show how the investor share of total lending value changed across states. Further calculation details for these measures are provided in @sec-appendix-q1-details.
 
 ```{r}
 #| label: q1-prepare-data
@@ -585,7 +585,7 @@ Overall, @fig-q1-overall-growth and @fig-q1-structure-value suggest that housing
 
 ## How have the origins of overseas migrants and their state settlement patterns changed across Australian states over time, and what are their links with wage growth and housing lending?
 
-To address the second research question, I examined how the origins of overseas migrants changed across Australian states from 2004-05 to 2024-25. I then examined whether migrant-origin concentration within each state was associated with wage growth and housing lending growth.
+To address the second research question, I also used R to examined how the origins of overseas migrants changed across Australian states from 2004-05 to 2024-25. I then examined whether migrant-origin concentration within each state was associated with wage growth and housing lending growth.
 
 ```{r}
 #| label: q2-prepare-data
@@ -746,9 +746,7 @@ lending_tas_est <- q2_lending_coef %>%
 
 ### Changing Origins of Migrant Inflows Across Australian States
 
-@fig-q2-origin-heatmap shows a clear long-run shift in the origins of migrant inflows across most states. The most striking pattern is the rising importance of Southern and Central Asia, whose national share of positive overseas migrant inflows increases from about `r scales::percent(sca_2004, accuracy = 0.1)` in 2004-05 to `r scales::percent(sca_2024, accuracy = 0.1)` in 2024-25. This rise appears across nearly all states, but is especially strong in the Australian Capital Territory and Victoria, where Southern and Central Asia accounts for about `r scales::percent(act_sca_2024, accuracy = 0.1)` and `r scales::percent(vic_sca_2024, accuracy = 0.1)` of positive inflows respectively in 2024-25.
-
-By contrast, North-West Europe becomes less important in most states, although it remains more prominent in Western Australia, where it still accounts for about `r scales::percent(wa_nwe_2024, accuracy = 0.1)` of positive inflows in 2024-25. Overall, migrant settlement patterns remain uneven across states, with Victoria and the Australian Capital Territory becoming more concentrated in Southern and Central Asian inflows, while Western Australia retains a more visible North-West European component.
+The heatmap in @fig-q2-origin-heatmap shows a clear long-run shift in the origins of migrant inflows across most states. The most notable pattern is the rising importance of Southern and Central Asia, whose national share of positive overseas migrant inflows increases from about `r scales::percent(sca_2004, accuracy = 0.1)` in 2004-05 to `r scales::percent(sca_2024, accuracy = 0.1)` in 2024-25. This increase appears across nearly all states, but is especially strong in the Australian Capital Territory and Victoria, where Southern and Central Asia accounts for about `r scales::percent(act_sca_2024, accuracy = 0.1)` and `r scales::percent(vic_sca_2024, accuracy = 0.1)` of positive inflows in 2024-25. By contrast, North-West Europe becomes less important in most states, although it remains more visible in Western Australia, where it still accounts for about `r scales::percent(wa_nwe_2024, accuracy = 0.1)` of positive inflows in 2024-25. Overall, the heatmap suggests that migrant settlement patterns remain uneven across states, with Victoria and the Australian Capital Territory becoming more concentrated in Southern and Central Asian inflows, while Western Australia retains a stronger North-West European component.
 
 ```{r}
 #| label: fig-q2-origin-heatmap
@@ -768,7 +766,7 @@ ggplot(om_origin_state, aes(x = start_year, y = origin_group, fill = share)) +
 
 ### Within-state relationships between migrant-origin concentration and economic outcomes
 
-To make the relationship easier to compare, I estimated a separate within-state slope for each state instead of plotting all state-years directly. Migrant-origin concentration was measured using a Herfindahl index (HHI), where higher values indicate that migrant inflows were concentrated in fewer countries of birth. I then examined whether years with relatively higher concentration within each state also tended to have relatively higher wage growth or housing lending growth. To reduce the influence of pandemic-related disruption, I excluded 2020-21 to 2022-23 from this within-state analysis and estimated robust regression models on the remaining years. The resulting coefficients and 95% confidence intervals are shown in @fig-q2-within-state-coef. 
+To make the relationship easier to compare, I estimated a separate within-state slope for each state rather than plotting all state-years directly. Migrant-origin concentration was measured using a Herfindahl index (HHI), where higher values indicate that migrant inflows were concentrated in fewer countries of birth. I then examined whether years with relatively higher concentration within each state also tended to have relatively higher wage growth or housing lending growth. To reduce the influence of pandemic-related disruption, I excluded 2020-21 to 2022-23 from this analysis and estimated robust regression models on the remaining years. The results are shown as a coefficient plot with 95% confidence intervals in @fig-q2-within-state-coef.
 
 Further calculation details for this within-state analysis are provided in @sec-appendix-within-state, and additional diagnostics for the excluded years are reported in @sec-appendix-excluded-years.
 
@@ -872,7 +870,7 @@ q3_tableau_maps <- q3_map_periods %>%
   select(country, state, period, mean_gap_pp, mean_investor_share, mean_migration_share, label_text)
 ```
 
-To reduce the influence of unusually disrupted migration patterns during the pandemic period and the immediate reopening adjustment, I exclude 2020-21 to 2022-23 from the mapped comparison. In this section, migration demand is proxied by each state’s share of positive overseas migrant inflows, and the gap is defined as investor lending share minus migration-demand share. I then compare three representative periods, namely an earlier period (2004-05 to 2011-12), a middle period (2012-13 to 2019-20), and a recent period (2023-24 to 2024-25). Averaging within each period makes state differences easier to compare visually.
+To reduce the influence of unusually disrupted migration patterns during the pandemic and the immediate reopening period, I excluded 2020-21 to 2022-23 from the mapped comparison. In this section, migration demand is proxied by each state’s share of positive overseas migrant inflows, and the gap is defined as investor lending share minus migration-demand share. Using R, I calculated these measures for each state and year, then averaged them within three representative periods: an earlier period (2004-05 to 2011-12), a middle period (2012-13 to 2019-20), and a recent period (2023-24 to 2024-25). I then exported the summarised state-level table to Tableau and visualised the results as a set of choropleth maps using a diverging colour scheme centred at zero. Averaging within each period makes the differences across states easier to compare visually.
 
 Further calculation details for this gap measure are provided in @sec-appendix-q3-gap, and the excluded years are summarised separately in @sec-appendix-excluded-years.
 
