@@ -69,7 +69,7 @@ I am personally interested in this topic because, as an international student fr
 This report addresses the following questions:
 
 1.  Does the growth of housing lending align with wage growth across Australian states, and how has the lending structure changed over time?
-2.  How have the origins of overseas migrants and their state settlement patterns changed across Australian states over time?
+2.  How have the origins of overseas migrants and their state settlement patterns changed across Australian states over time, and what are their links with wage growth and housing lending?
 3.  Where are the largest gaps between investor lending and migration demand across Australian states, and how have these gaps changed over time?
 
 # Data Wrangling and Checking
@@ -100,15 +100,15 @@ This project uses four open datasets from the Australian Bureau of Statistics (A
 -   [Investor Lending](https://www.abs.gov.au/statistics/economy/finance/lending-indicators/latest-release/560114.xlsx)
 -   [Wage Price Index](https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/wage-price-index-australia/latest-release/634502b.xlsx)
 
-Before checking and cleaning the data, I first transformed the three ABS datasets into tidy formats that were easier to compare and analyse in R. Although all three sources were downloaded as Excel workbooks, they had different internal structures and could not be used directly for analysis.
+Before checking and cleaning the data, I first converted the ABS Excel workbooks into tidy datasets that were easier to compare and analyse in R. Although the files came from similar ABS sources, their internal structures were quite different, so they could not be used directly.
 
-For the overseas migration data, the workbook contained nine separate tables, including one national table and eight state or territory tables. I created a lookup table containing the sheet names, state names, and row ranges, then used a function to read each worksheet in the same way. In each sheet, I used the first imported row as the column names, renamed the first two columns as `sacc_code` and `country_of_birth`, and removed note labels from the year columns, which is the letter attached to 2024-25. I then converted the data from wide format to long format using `pivot_longer()`, so that each row represented one state, one country of birth, and one financial year. Finally, I combined all nine sheets into a single dataset called `overseas_migration`.
+For the overseas migration data, the workbook contained nine separate tables, including one national table and eight state or territory tables. I created a lookup table of sheet names, states, and row ranges, then used a function to read each sheet in the same way. I used the first imported row as the column names, renamed the first two columns as `sacc_code` and `country_of_birth`, removed note labels from the year columns, and reshaped the data from wide to long format using `pivot_longer()`. I then combined all nine sheets into one dataset called `overseas_migration`.
 
-For the housing finance data, I used the `Data1` sheet from both the owner-occupier and investor lending workbooks. In both files, the first ten rows contained metadata rather than observations, so I read these rows separately from the main time series data. I created temporary column names for the series columns and extracted key metadata such as state, value type, unit, and series type by splitting the original ABS series description. I then reshaped the time series data into long format and created additional time variables, including calendar year, quarter, and financial year. After that, I combined the owner-occupier and investor datasets into one dataset called `housing_finance`, with an added variable called `loan_type` to distinguish between the two sources.
+For the housing finance data, I used the `Data1` sheet from both the owner-occupier and investor lending workbooks. I read the first ten metadata rows separately from the time series data, created temporary series column names, and extracted variables such as state, value type, unit, and series type from the ABS series descriptions. I then reshaped the data into long format, created year, month, and financial year variables, and combined the two sources into one dataset called `housing_finance`, with a `loan_type` variable to show whether the series was owner-occupier or investor lending.
 
-For the Wage Price Index data, I again used the `Data1` sheet and followed a similar process. I read the metadata rows separately, created temporary series column names, and extracted information such as state, wage measure, and unit from the ABS series descriptions. I then reshaped the data into long format and created year, quarter, and financial year variables. This produced a final tidy dataset called `wage_price_index`.
+For the Wage Price Index data, I also used the `Data1` sheet and followed a similar process. I read the metadata rows separately, created temporary series column names, extracted variables such as state and wage measure, and reshaped the data into long format. I then created year, month, and financial year variables to produce a final tidy dataset called `wage_price_index`.
 
-Overall, the main purpose of this step was to convert the original Excel workbooks into consistent long-format datasets that could be compared more easily across states and time. This also made it easier to carry out the next stage of the project, which involved checking the structure, identifying missing values, reviewing inconsistencies, and cleaning the data where necessary. The tidy datasets and all data processing code used in this project are available in my [GitHub repository](https://github.com/ruby910113/FIT5147-DEP-report).
+Overall, this step turned the original Excel workbooks into consistent long-format datasets that could be compared across states and time. It also made the later checking, filtering, and analysis much easier. The tidy datasets and all data processing code used in this project are available in my [GitHub repository](https://github.com/ruby910113/FIT5147-DEP-report).
 
 ```{r}
 # File path for the overseas migration workbook
@@ -269,36 +269,16 @@ As shown in @tbl-time-summary, Housing finance and Wage price index are quarterl
 #| tbl-cap: Summary of time structure across the datasets
 
 data_time_summary <- bind_rows(
-  tibble(
-    dataset = "Overseas migration",
-    start_ym = "Not applicable",
-    end_ym = "Not applicable",
-    frequency = "Annual",
-    time_period = paste0(min(overseas_migration$financial_year), " to ", max(overseas_migration$financial_year))),
+  tibble(dataset = "Overseas migration", frequency = "Annual", time_period = paste0(min(overseas_migration$financial_year), " to ", max(overseas_migration$financial_year))),
   
   housing_finance %>%
-    distinct(year, month, financial_year) %>%
-    mutate(date = make_date(year, month, 1)) %>%
-    summarise(
-      dataset = "Housing finance",
-      start_ym = paste0(year(min(date)), "/", month(min(date))),
-      end_ym = paste0(year(max(date)), "/", month(max(date))),
-      frequency = "Quarterly",
-      time_period = paste0(min(financial_year), " to ", max(financial_year))),
+    summarise(dataset = "Housing finance", frequency = "Quarterly", time_period = paste0(min(financial_year), " to ", max(financial_year))),
   
   wage_price_index %>%
-    distinct(year, month, financial_year) %>%
-    mutate(date = make_date(year, month, 1)) %>%
-    summarise(
-      dataset = "Wage price index",
-      start_ym = paste0(year(min(date)), "/", month(min(date))),
-      end_ym = paste0(year(max(date)), "/", month(max(date))),
-      frequency = "Quarterly",
-      time_period = paste0(min(financial_year), " to ", max(financial_year))))
+    summarise(dataset = "Wage price index", frequency = "Quarterly", time_period = paste0(min(financial_year), " to ", max(financial_year))))
 
 data_time_summary %>%
-  kable(caption = "Summary of time structure across the datasets",
-        col.names = c("Dataset", "Start (Year/Month)", "End (Year/Month)", "Frequency", "Time period")) %>%
+  kable(caption = "Summary of time structure across the datasets", col.names = c("Dataset", "Frequency", "Time period")) %>%
   kable_styling(full_width = FALSE)
 ```
 
@@ -316,9 +296,9 @@ wage_price_index <- wage_price_index %>%
          financial_year <= "2024-25")
 ```
 
-## Understanding Missing Values in the Housing Finance Data
+## Selecting variables for the housing finance and wage price index data
 
-@tbl-hf-missing-summary shows that the housing finance dataset is largely complete, except for the Investor Number series, which is only available from 2019-20 onward. This suggests that the missing values are structural rather than accidental, since the series begins later in the original source data. Therefore, these values were not imputed, and any analysis using Investor Number should be limited to 2019-20 onward or interpreted cautiously when compared with the longer series.
+@tbl-hf-missing-summary shows that the housing finance master dataset includes both owner-occupier and investor lending series, as well as both Value and Number measures. The only later-starting series is Investor Number, which is available from 2019-20 onward, suggesting that these missing values are structural rather than accidental. However, the main analysis in this report uses only the Original Value series. These were the series used to calculate housing lending growth, investor shares, and investor-migration gaps. Seasonally adjusted and Trend series were not used, because I wanted to keep the comparisons based on one consistent set of Original financial-year data and avoid mixing differently processed ABS series in the reported results. As a result, the later-starting Investor Number series did not affect the reported results.
 
 ```{r}
 #| label: tbl-hf-missing-summary
@@ -342,9 +322,22 @@ hf_missing_summary %>%
   kable_styling(full_width = FALSE)
 ```
 
+For the Wage Price Index data, the master dataset includes the index series as well as percentage-change series. However, the main analysis in this report uses only the index series, because annual wage growth was calculated consistently from the financial-year average index. This means that the percentage-change series were not used in the reported results.
+
+```{r}
+# Keep only the variables and Original Value series used later in the main analysis
+housing_finance <- housing_finance %>%
+  filter(value_type == "Value", series_type == "Original") %>% 
+  select(financial_year, state, loan_type, housing_finance)
+
+wage_price_index <- wage_price_index %>%
+  filter(wpi_measure == "index") %>%
+  select(financial_year, state, wage_price_index)
+```
+
 ## Checking Distribution Shapes Across the Datasets
 
-@fig-distribution shows no clear sign of major data errors after the asinh transformation. The housing finance data are right-skewed, but the distribution is still fairly smooth, so this looks more like normal variation than unusual mistakes. The overseas migration data are strongly concentrated around zero, with longer tails on both sides, which suggests that many observations are small or zero while some are much larger in either the positive or negative direction. The wage price index data show a clear bimodal shape, but this is likely due to combining index values and percentage change measures in the same dataset, rather than indicating abnormal observations. Overall, this check suggests that the main issue is differences in data structure across the datasets, not obvious errors in the values.
+@fig-distribution shows no clear sign of major data errors after the asinh transformation. The housing finance and wage price index data have a similar pattern, with slight right-skewness but otherwise fairly smooth distributions and no obvious outliers. In contrast, the overseas migration data are much more concentrated around zero, with longer tails on both sides, which suggests that many observations are small or zero while some are much larger in either the positive or negative direction. Overall, this check suggests that the datasets mainly differ in their distributions rather than showing clear data-quality problems.
 
 ```{r}
 #| label: fig-distribution
@@ -388,7 +381,7 @@ ggplot(distribution_data, aes(x = value_asinh, fill = dataset)) +
 
 ## Summary of Data Checking
 
-Overall, the data wrangling and checking steps suggest that the three datasets were successfully converted into tidy formats and aligned to a common financial-year structure for comparison. No major data quality problems were identified, aside from the structurally missing Investor Number series and the expected differences in measurement scales across the datasets. These issues were taken into account in later analysis, so the cleaned data provide a suitable basis for exploring relationships between migration, housing lending, and wage growth across Australian states.
+Overall, the data wrangling and checking steps suggest that the three datasets were successfully converted into tidy formats and aligned to a common financial-year structure for comparison. No major data quality problems were identified. After completing these checks, I filtered the master datasets to keep only the series used in the main exploration, such as the Original Value series for housing finance and the index series for the Wage Price Index. These cleaned and selected data therefore provide a suitable basis for exploring relationships between migration, housing lending, and wage growth across Australian states.
 
 # Data Exploration
 
@@ -424,35 +417,35 @@ state_colors <- c(
 
 # Wage growth: state-level and national-level
 wpi_state_fy <- wage_price_index %>%
-  filter(state %in% state_levels, wpi_measure == "index") %>%
+  filter(state %in% state_levels) %>%
   group_by(financial_year, state) %>%
-  summarise(annual_wpi = mean(wage_price_index, na.rm = TRUE), .groups = "drop") %>%
+  summarise(annual_wpi = mean(wage_price_index), .groups = "drop") %>%
   arrange(state, financial_year) %>%
   group_by(state) %>%
   mutate(wage_growth_pct = (annual_wpi / lag(annual_wpi) - 1) * 100, start_year = as.integer(str_sub(financial_year, 1, 4))) %>%
   ungroup()
 
 wpi_nat_fy <- wage_price_index %>%
-  filter(state == "Australia", wpi_measure == "index") %>%
+  filter(state == "Australia") %>%
   group_by(financial_year) %>%
-  summarise(annual_wpi = mean(wage_price_index, na.rm = TRUE), .groups = "drop") %>%
+  summarise(annual_wpi = mean(wage_price_index), .groups = "drop") %>%
   arrange(financial_year) %>%
   mutate(wage_growth_pct = (annual_wpi / lag(annual_wpi) - 1) * 100, start_year = as.integer(str_sub(financial_year, 1, 4)))
 
 # Housing lending growth: state-level and national-level
 hf_state_fy <- housing_finance %>%
-  filter(state %in% state_levels, value_type == "Value", series_type == "Original") %>%
+  filter(state %in% state_levels) %>%
   group_by(financial_year, state) %>%
-  summarise(total_lending = sum(housing_finance, na.rm = TRUE), .groups = "drop") %>%
+  summarise(total_lending = sum(housing_finance), .groups = "drop") %>%
   arrange(state, financial_year) %>%
   group_by(state) %>%
   mutate(lending_growth_pct = (total_lending / lag(total_lending) - 1) * 100, start_year = as.integer(str_sub(financial_year, 1, 4))) %>%
   ungroup()
 
 hf_nat_fy <- housing_finance %>%
-  filter(state == "Total Australia", value_type == "Value", series_type == "Original") %>%
+  filter(state == "Total Australia") %>%
   group_by(financial_year) %>%
-  summarise(total_lending = sum(housing_finance, na.rm = TRUE), .groups = "drop") %>%
+  summarise(total_lending = sum(housing_finance), .groups = "drop") %>%
   arrange(financial_year) %>%
   mutate(lending_growth_pct = (total_lending / lag(total_lending) - 1) * 100, start_year = as.integer(str_sub(financial_year, 1, 4)))
 
@@ -468,16 +461,15 @@ overall_growth_nat <- bind_rows(
   wpi_nat_fy %>%
     transmute(financial_year, start_year, series = "Wage growth", growth_pct = wage_growth_pct),
   hf_nat_fy %>%
-    transmute(financial_year, start_year, series = "Housing lending growth", growth_pct = lending_growth_pct)) %>%
+    transmute(financial_year, start_year, series = "Housing lending growth", growth_pct = lending_growth_pct)
+) %>%
   filter(!is.na(growth_pct))
 
 # Investor share of total housing lending value
 investor_share_value_state <- housing_finance %>%
-  filter(state %in% state_levels, series_type == "Original", value_type == "Value") %>%
+  filter(state %in% state_levels) %>%
   group_by(financial_year, state, loan_type) %>%
-  summarise(
-    annual_total = sum(housing_finance, na.rm = TRUE),
-    .groups = "drop") %>%
+  summarise(annual_total = sum(housing_finance), .groups = "drop") %>%
   group_by(financial_year, state) %>%
   mutate(share = annual_total / sum(annual_total)) %>%
   ungroup() %>%
@@ -485,11 +477,9 @@ investor_share_value_state <- housing_finance %>%
   mutate(start_year = as.integer(str_sub(financial_year, 1, 4)))
 
 investor_share_value_nat <- housing_finance %>%
-  filter(state == "Total Australia", series_type == "Original", value_type == "Value") %>%
+  filter(state == "Total Australia") %>%
   group_by(financial_year, loan_type) %>%
-  summarise(
-    annual_total = sum(housing_finance, na.rm = TRUE),
-    .groups = "drop") %>%
+  summarise(annual_total = sum(housing_finance), .groups = "drop") %>%
   group_by(financial_year) %>%
   mutate(share = annual_total / sum(annual_total)) %>%
   ungroup() %>%
@@ -506,9 +496,7 @@ nat_wage <- overall_growth_nat %>%
 
 value_state_summary <- investor_share_value_state %>%
   group_by(state) %>%
-  summarise(
-    mean_share = mean(share, na.rm = TRUE),
-    peak_share = max(share, na.rm = TRUE),
+  summarise(mean_share = mean(share), peak_share = max(share),
     .groups = "drop")
 
 value_vs_nat <- investor_share_value_state %>%
@@ -519,14 +507,14 @@ value_vs_nat <- investor_share_value_state %>%
     by = "financial_year") %>%
   group_by(state) %>%
   summarise(
-    prop_above_nat = mean(share > nat_share, na.rm = TRUE),
+    prop_above_nat = mean(share > nat_share),
     .groups = "drop")
 ```
 
 
 ### Divergence between housing lending growth and wage growth
 
-@fig-q1-overall-growth separates housing lending growth and wage growth into two panels, making their state-level patterns easier to compare. Wage growth stays within a relatively narrow range of about `r round(min(nat_wage$growth_pct, na.rm = TRUE), 1)`% to `r round(max(nat_wage$growth_pct, na.rm = TRUE), 1)`%, but still shows a longer-run decline from 2005-06 to 2020-21 before rising again towards its period average of `r round(mean(nat_wage$growth_pct, na.rm = TRUE), 1)`%. Western Australia shows the largest swings in wage growth, while Tasmania appears least affected during the COVID-19 period and rebounds strongly afterwards.
+@fig-q1-overall-growth separates housing lending growth and wage growth into two panels, making their state-level patterns easier to compare. Wage growth stays within a relatively narrow range of about `r round(min(nat_wage$growth_pct), 1)`% to `r round(max(nat_wage$growth_pct), 1)`%, but still shows a longer-run decline from 2005-06 to 2020-21 before rising again towards its period average of `r round(mean(nat_wage$growth_pct), 1)`%. Western Australia shows the largest swings in wage growth, while Tasmania appears least affected during the COVID-19 period and rebounds strongly afterwards.
 
 By contrast, housing lending growth is much more volatile and differs more across states. The sharp divergence in 2020-21 likely reflects the COVID-19 period, while the large fall in 2022-23 is consistent with a post-pandemic adjustment. Lending fluctuations are especially large in Northern Territory, Western Australia, and New South Wales, whereas South Australia and the Australian Capital Territory are relatively more stable. Overall, the figure suggests that short-run changes in housing finance are driven much more by lending market conditions than by wage growth.
 
@@ -570,7 +558,7 @@ p_wage <- ggplot() +
 
 ### Long-run changes in the investor share of lending value
 
-@fig-q1-structure-value examines how the investor share of total housing lending value changed across states from 2004-05 to 2024-25. The national pattern is clearly cyclical. The investor share starts at about `r scales::percent(investor_share_value_nat$share[investor_share_value_nat$financial_year == "2004-05"], accuracy = 0.1)`, rises to a peak of `r scales::percent(max(investor_share_value_nat$share, na.rm = TRUE), accuracy = 0.1)` in 2014-15, then falls sharply to `r scales::percent(min(investor_share_value_nat$share, na.rm = TRUE), accuracy = 0.1)` in 2020-21 before recovering to `r scales::percent(investor_share_value_nat$share[investor_share_value_nat$financial_year == "2024-25"], accuracy = 0.1)` by 2024-25.
+@fig-q1-structure-value examines how the investor share of total housing lending value changed across states from 2004-05 to 2024-25. The national pattern is clearly cyclical. The investor share starts at about `r scales::percent(investor_share_value_nat$share[investor_share_value_nat$financial_year == "2004-05"], accuracy = 0.1)`, rises to a peak of `r scales::percent(max(investor_share_value_nat$share), accuracy = 0.1)` in 2014-15, then falls sharply to `r scales::percent(min(investor_share_value_nat$share), accuracy = 0.1)` in 2020-21 before recovering to `r scales::percent(investor_share_value_nat$share[investor_share_value_nat$financial_year == "2024-25"], accuracy = 0.1)` by 2024-25.
 
 New South Wales stands out as the most investor-oriented market over the long run. Its average investor share is about `r scales::percent(value_state_summary$mean_share[value_state_summary$state == "New South Wales"], accuracy = 0.1)`, and it remains above the national share in `r scales::percent(value_vs_nat$prop_above_nat[value_vs_nat$state == "New South Wales"], accuracy = 1)` of years, peaking at `r scales::percent(value_state_summary$peak_share[value_state_summary$state == "New South Wales"], accuracy = 0.1)` in 2014-15. By contrast, Tasmania has one of the lowest average investor shares, at about `r scales::percent(value_state_summary$mean_share[value_state_summary$state == "Tasmania"], accuracy = 0.1)`. Northern Territory and Tasmania show a somewhat similar long-run pattern, with investor shares generally remaining below the national benchmark for much of the period. However, both rise sharply after the COVID-19 period. By 2024-25, Northern Territory reaches `r scales::percent(investor_share_value_state$share[investor_share_value_state$state == "Northern Territory" & investor_share_value_state$financial_year == "2024-25"], accuracy = 0.1)` and Tasmania reaches `r scales::percent(investor_share_value_state$share[investor_share_value_state$state == "Tasmania" & investor_share_value_state$financial_year == "2024-25"], accuracy = 0.1)`, compared with the national share of `r scales::percent(investor_share_value_nat$share[investor_share_value_nat$financial_year == "2024-25"], accuracy = 0.1)`. Western Australia follows a different pattern: after 2008-09, its investor share begins to move further away from the national benchmark, before recovering again after the 2020-21 low. It rises from `r scales::percent(investor_share_value_state$share[investor_share_value_state$state == "Western Australia" & investor_share_value_state$financial_year == "2020-21"], accuracy = 0.1)` in 2020-21 to `r scales::percent(investor_share_value_state$share[investor_share_value_state$state == "Western Australia" & investor_share_value_state$financial_year == "2024-25"], accuracy = 0.1)` in 2024-25. The other states generally follow the national cycle more closely and do not show such distinctive departures. Overall, the figure suggests that the structure of housing lending has changed substantially over time and that investor activity has been much more important in some state housing markets than in others.
 
@@ -593,9 +581,9 @@ ggplot(investor_share_value_state, aes(x = start_year, y = share, colour = state
 
 ### Summary of findings
 
-Overall, @fig-q1-overall-growth and @fig-q1-structure-value suggest that housing lending growth does not closely track wage growth across Australian states, and that the structure of lending has changed markedly over time. Investor activity appears to be more strongly related to the composition of lending than to short-run movements in total lending growth, with some states remaining much more investor-oriented than others.
+Overall, @fig-q1-overall-growth and @fig-q1-structure-value suggest that housing lending and wage growth followed different state-level dynamics. Lending growth was much more volatile than wage growth, while investor activity shaped the lending structure more strongly in some states than in others, especially New South Wales. Together, these figures suggest that state housing markets differed not only in lending volatility, but also in how strongly investor demand influenced overall lending patterns.
 
-## Changing Migrant Origins, State Settlement Patterns, and Their Links to Wage Growth and Housing Lending in Australia
+## How have the origins of overseas migrants and their state settlement patterns changed across Australian states over time, and what are their links with wage growth and housing lending?
 
 To address the second research question, I examined how the origins of overseas migrants changed across Australian states from 2004-05 to 2024-25. I then examined whether migrant-origin concentration within each state was associated with wage growth and housing lending growth.
 
@@ -631,9 +619,9 @@ overseas_migration_grouped <- overseas_migration %>%
 om_origin_state <- overseas_migration_grouped %>%
   mutate(pos_nom = pmax(net_overseas_migration, 0)) %>%
   group_by(financial_year, state, origin_group) %>%
-  summarise(pos_nom = sum(pos_nom, na.rm = TRUE), .groups = "drop") %>%
+  summarise(pos_nom = sum(pos_nom), .groups = "drop") %>%
   group_by(financial_year, state) %>%
-  mutate(total_pos_nom = sum(pos_nom, na.rm = TRUE), share = pos_nom / total_pos_nom, start_year = as.integer(str_sub(financial_year, 1, 4)), origin_group = factor(origin_group, levels = rev(origin_levels))) %>%
+  mutate(total_pos_nom = sum(pos_nom), share = pos_nom / total_pos_nom, start_year = as.integer(str_sub(financial_year, 1, 4)), origin_group = factor(origin_group, levels = rev(origin_levels))) %>%
   ungroup() %>%
   filter(total_pos_nom > 0)
 
@@ -642,11 +630,11 @@ om_origin_state <- overseas_migration_grouped %>%
 om_country_concentration <- overseas_migration_grouped %>%
   mutate(pos_nom = pmax(net_overseas_migration, 0)) %>%
   group_by(financial_year, state) %>%
-  mutate(total_pos_nom = sum(pos_nom, na.rm = TRUE)) %>%
+  mutate(total_pos_nom = sum(pos_nom)) %>%
   filter(total_pos_nom > 0) %>%
   mutate(country_share = pos_nom / total_pos_nom) %>%
   group_by(financial_year, state) %>%
-  summarise(total_pos_nom = first(total_pos_nom), country_hhi = sum(country_share^2, na.rm = TRUE), .groups = "drop")
+  summarise(total_pos_nom = first(total_pos_nom), country_hhi = sum(country_share^2), .groups = "drop")
 
 q2_dev <- om_country_concentration %>%
   left_join(
@@ -657,7 +645,7 @@ q2_dev <- om_country_concentration %>%
       select(financial_year, state, lending_growth_pct), by = c("financial_year", "state")) %>%
   filter(!is.na(wage_growth_pct), !is.na(lending_growth_pct), !financial_year %in% c("2020-21", "2021-22", "2022-23")) %>%
   group_by(state) %>%
-  mutate(hhi_dev = country_hhi - mean(country_hhi, na.rm = TRUE), wage_dev = wage_growth_pct - mean(wage_growth_pct, na.rm = TRUE), lending_dev = lending_growth_pct - mean(lending_growth_pct, na.rm = TRUE)) %>%
+  mutate(hhi_dev = country_hhi - mean(country_hhi), wage_dev = wage_growth_pct - mean(wage_growth_pct), lending_dev = lending_growth_pct - mean(lending_growth_pct)) %>%
   ungroup()
 
 fit_rlm_coef <- function(data, outcome_var, indicator_name) {
@@ -700,9 +688,9 @@ nat_origin_shift <- overseas_migration %>%
   add_origin_group() %>%
   mutate(pos_nom = pmax(net_overseas_migration, 0)) %>%
   group_by(financial_year, origin_group) %>%
-  summarise(pos_nom = sum(pos_nom, na.rm = TRUE), .groups = "drop") %>%
+  summarise(pos_nom = sum(pos_nom), .groups = "drop") %>%
   group_by(financial_year) %>%
-  mutate(share = pos_nom / sum(pos_nom, na.rm = TRUE)) %>%
+  mutate(share = pos_nom / sum(pos_nom)) %>%
   ungroup()
 
 sca_2004 <- nat_origin_shift %>%
@@ -807,75 +795,59 @@ ggplot(q2_coef_plot_robust, aes(x = estimate, y = state, colour = state)) +
 
 ### Summary of findings
 
-Overall, @fig-q2-origin-heatmap and @fig-q2-within-state-coef suggest that migrant origins and state settlement patterns changed clearly over time, but their links with wage growth and housing lending were less consistent. Migrant inflows became increasingly dominated by Southern and Central Asia, although this change was not the same across all states. Victoria and the Australian Capital Territory became more concentrated in Southern and Central Asian inflows, while Western Australia kept a more visible North-West European component.
-
-These differences in migrant origins and settlement patterns did not lead to one clear economic pattern across Australia. The within-state results suggest that migrant-origin concentration was more often linked to wage growth than to housing lending growth, but the direction and strength of this relationship still differed across states. Overall, this means that changes in migrant origins and settlement patterns were an important part of the data, but their links with wage growth and housing lending were uneven rather than uniform across Australia.
+Overall, @fig-q2-origin-heatmap and @fig-q2-within-state-coef suggest that migrant origins and settlement patterns changed clearly over time, but their economic links were less uniform across states. Southern and Central Asia became more prominent in most states, especially in Victoria and the Australian Capital Territory, while Western Australia retained a more visible North-West European component. The within-state results suggest that migrant-origin concentration was more clearly related to wage growth than to housing lending growth, but these relationships still varied across states. Overall, changes in migrant composition were important, but their economic effects were uneven rather than consistent across Australia.
 
 ## Where are the largest gaps between investor lending and migration demand across Australian states, and how has this geography changed over time?
 
 ```{r}
 #| label: q3-prepare-data
 
-# Periods for the three Tableau maps
 q3_period_levels <- c("2004-05 to 2011-12", "2012-13 to 2019-20", "2023-24 to 2024-25")
 
-# ---------------------------------------------------------
 # 1. Migration demand: state share of positive migrant inflows
-# ---------------------------------------------------------
 q3_migration_state <- overseas_migration %>%
   filter(state %in% state_levels, country_of_birth != "Australia") %>%
   mutate(pos_nom = pmax(net_overseas_migration, 0)) %>%
   group_by(financial_year, state) %>%
-  summarise(pos_nom = sum(pos_nom, na.rm = TRUE), .groups = "drop") %>%
+  summarise(pos_nom = sum(pos_nom), .groups = "drop") %>%
   group_by(financial_year) %>%
-  mutate(total_pos_nom = sum(pos_nom, na.rm = TRUE), migration_share = pos_nom / total_pos_nom) %>%
+  mutate(total_pos_nom = sum(pos_nom), migration_share = pos_nom / total_pos_nom) %>%
   ungroup()
 
-# ---------------------------------------------------------
 # 2. Investor lending: state share of investor lending value
-# ---------------------------------------------------------
 q3_investor_state <- housing_finance %>%
-  filter(state %in% state_levels, loan_type == "investor", value_type == "Value", series_type == "Original") %>%
+  filter(state %in% state_levels, loan_type == "investor") %>%
   group_by(financial_year, state) %>%
-  summarise(investor_value = sum(housing_finance, na.rm = TRUE), .groups = "drop") %>%
+  summarise(investor_value = sum(housing_finance), .groups = "drop") %>%
   group_by(financial_year) %>%
-  mutate(total_investor_value = sum(investor_value, na.rm = TRUE), investor_share = investor_value / total_investor_value) %>%
+  mutate(total_investor_value = sum(investor_value),
+    investor_share = investor_value / total_investor_value) %>%
   ungroup()
 
-# ---------------------------------------------------------
 # 3. Gap = investor share - migration share
-# ---------------------------------------------------------
 q3_gap_yearly <- q3_investor_state %>%
-  left_join(q3_migration_state %>%
+  left_join(
+    q3_migration_state %>%
       select(financial_year, state, migration_share, pos_nom), by = c("financial_year", "state")) %>%
-  mutate(start_year = as.integer(str_sub(financial_year, 1, 4)), gap_pp = (investor_share - migration_share) * 100, period = case_when(
-    start_year >= 2004 & start_year <= 2011 ~ "2004-05 to 2011-12",
-    start_year >= 2012 & start_year <= 2019 ~ "2012-13 to 2019-20",
-    financial_year %in% c("2023-24", "2024-25") ~ "2023-24 to 2024-25",
-    TRUE ~ NA_character_))
+  mutate(start_year = as.integer(str_sub(financial_year, 1, 4)),gap_pp = (investor_share - migration_share) * 100, period = case_when(start_year >= 2004 & start_year <= 2011 ~ "2004-05 to 2011-12", start_year >= 2012 & start_year <= 2019 ~ "2012-13 to 2019-20", financial_year %in% c("2023-24", "2024-25") ~ "2023-24 to 2024-25"))
 
-# ---------------------------------------------------------
 # 4. Average gap for each state within each map period
-# ---------------------------------------------------------
 q3_map_periods <- q3_gap_yearly %>%
   filter(!is.na(period)) %>%
   group_by(period, state) %>%
-  summarise(mean_gap_pp = mean(gap_pp, na.rm = TRUE), mean_investor_share = mean(investor_share, na.rm = TRUE) * 100, mean_migration_share = mean(migration_share, na.rm = TRUE) * 100, .groups = "drop") %>%
+  summarise(mean_gap_pp = mean(gap_pp), mean_investor_share = mean(investor_share) * 100, mean_migration_share = mean(migration_share) * 100, .groups = "drop") %>%
   mutate(country = "Australia", period = factor(period, levels = q3_period_levels), label_text = paste0(state, "\n", sprintf("%+.1f pp", mean_gap_pp))) %>%
   arrange(period, state)
 
-# ---------------------------------------------------------
 # 5. Change table for writing
-# ---------------------------------------------------------
 q3_change_summary <- q3_map_periods %>%
   select(period, state, mean_gap_pp) %>%
   pivot_wider(names_from = period, values_from = mean_gap_pp) %>%
-  mutate(change_early_to_recent = `2023-24 to 2024-25` - `2004-05 to 2011-12`, change_precovid_to_recent = `2023-24 to 2024-25` - `2012-13 to 2019-20`) %>%
+  mutate(change_early_to_recent = `2023-24 to 2024-25` - `2004-05 to 2011-12`,
+    change_precovid_to_recent = `2023-24 to 2024-25` - `2012-13 to 2019-20`) %>%
   arrange(desc(change_early_to_recent))
 
-# ---------------------------------------------------------
 # 6. Tables for checking the biggest positive and negative gaps
-# ---------------------------------------------------------
 q3_highest_gap <- q3_map_periods %>%
   group_by(period) %>%
   slice_max(mean_gap_pp, n = 1, with_ties = FALSE) %>%
@@ -886,7 +858,6 @@ q3_lowest_gap <- q3_map_periods %>%
   slice_min(mean_gap_pp, n = 1, with_ties = FALSE) %>%
   ungroup()
 
-# final
 q3_tableau_maps <- q3_map_periods %>%
   mutate(period = as.character(period)) %>%
   select(country, state, period, mean_gap_pp, mean_investor_share, mean_migration_share)
@@ -907,7 +878,7 @@ Further calculation details for this gap measure are provided in @sec-appendix-q
 
 In @fig-q3-maps, blue states indicate that investor lending is stronger than migration demand, while orange states indicate the opposite. The largest positive gap in the early period is in Queensland, while the largest negative gap is in Western Australia. In the middle and recent periods, New South Wales has the largest positive gap, whereas Victoria has the largest negative gap. This shows that the geography of mismatch becomes more concentrated over time. Queensland remains positive throughout, although the gap becomes smaller in the middle period before returning to a stronger positive value in the recent period. Western Australia remains negative across all three periods. Northern Territory stays close to neutral overall but is slightly negative in the middle and recent periods. The Australian Capital Territory remains close to neutral but slightly positive throughout, while Tasmania shifts from slightly positive in the early period to slightly negative in the later periods. South Australia is less stable, moving from slightly positive to negative in the middle period before returning to near neutral in the recent period.
 
-Overall, @fig-q3-maps suggests that the investor-migration gap becomes less even over time. The strongest mismatches are concentrated in a small number of states, especially New South Wales and Victoria, but in opposite directions. This pattern is consistent with @fig-q1-structure-value, where New South Wales appears as the most investor-oriented market, and it also complements @fig-q2-origin-heatmap, which shows that migrant settlement patterns remain uneven across states. This suggests that investor activity and migration-related housing demand are not distributed evenly across Australian states, which helps explain why housing pressure may be experienced differently across state housing markets. 
+Overall, @fig-q3-maps suggests that the investor-migration gap became less even over time. The strongest mismatches are concentrated in a small number of states, especially New South Wales and Victoria, but in opposite directions. This pattern is consistent with @fig-q1-structure-value, where New South Wales appears as the most investor-oriented market, and it also complements @fig-q2-origin-heatmap, which shows that migrant settlement patterns remain uneven across states. However, the supplementary statistical test provides weaker support for this result, so it should be interpreted more cautiously. Even so, the figure still suggests that investor activity and migration-related housing demand were not distributed evenly across Australian states, which helps explain why housing pressure may be experienced differently across state housing markets.
 
 ```{r}
 #| label: fig-q3-maps
@@ -947,7 +918,9 @@ Taken together with @fig-q3-maps, these findings show that the gap between inves
 
 This project was challenging for me in a lot of ways and I learned a lot from it. The hardest part was the page limit. I am quite comfortable using R to explore data and make visualisations, and I usually like trying different ways to analyse a dataset. But in this assignment, I had to answer three big questions within a limited number of pages. Since each question only had around two pages of space, I had to think very carefully about what to include and what to leave out. That was a big challenge for me, and it was also the first time I spent almost three weeks finishing one data analysis report. Through this process, I realised that data exploration is not only about doing as much analysis as possible, but also about choosing the clearest and most useful way to present it.
 
-Another challenge was deciding how to calculate and summarise the data so that each question could be answered properly. Because I could only use one or two figures for each question, I had to spend a lot of time thinking about which method would work best. Without using Shiny app it was not easy to answer broad questions in such a small space, so I tried many different approaches before deciding on the final one. I also improved a lot in debugging during this project. The ABS datasets were quite complicated to clean and combine, and many parts of the analysis needed repeated calculations and custom functions. Writing functions is still difficult for me, so this project pushed me to practise that skill a lot more. Overall, the biggest lesson I learned was how to write a concise report, because that is something I am not naturally good at and had not really tried before. If I did this project again, I would try to plan the structure earlier and decide on the final figures and calculations sooner so I could manage the page limit better.
+Another challenge was deciding how to calculate and summarise the data so that each question could be answered properly. Because I could only use one or two figures for each question, I had to spend a lot of time thinking about which method would work best. Without using a Shiny app it was not easy to answer broad questions in such a small space, so I tried many different approaches before deciding on the final one. I also improved a lot in debugging during this project. The ABS datasets were quite complicated to clean and combine, and many parts of the analysis needed repeated calculations and custom functions. Writing functions is still difficult for me, so this project pushed me to practise that skill a lot more. Overall, the biggest lesson I learned was how to write a concise report, because that is something I am not naturally good at and had not really tried before. If I did this project again, I would try to plan the structure earlier and decide on the final figures and calculations sooner so I could manage the page limit better.
+
+\newpage
 
 # References
 
@@ -984,6 +957,11 @@ Xie Y (2025). knitr: A General-Purpose Package for Dynamic Report Generation in 
 
 Zhu H (2024). kableExtra: Construct Complex Table with 'kable' and Pipe Syntax. doi:10.32614/CRAN.package.kableExtra <https://doi.org/10.32614/CRAN.package.kableExtra>, R package version 1.4.0, <https://CRAN.R-project.org/package=kableExtra>.
 
+# AI statement
+
+I mainly used GPT to help write functions for the analysis. For debugging and grammar checking, I used Positron’s built-in assistant, which helped me identify coding errors and improve the wording of the report. These tools made the analysis process more efficient and helped me complete the report more smoothly.
+
+\newpage
 \appendix
 
 # Appendix
@@ -1010,7 +988,7 @@ q2_dev_full <- om_country_concentration %>%
     by = c("financial_year", "state")) %>%
   filter(!is.na(wage_growth_pct), !is.na(lending_growth_pct)) %>%
   group_by(state) %>%
-  mutate(hhi_dev = country_hhi - mean(country_hhi, na.rm = TRUE), wage_dev = wage_growth_pct - mean(wage_growth_pct, na.rm = TRUE), lending_dev = lending_growth_pct - mean(lending_growth_pct, na.rm = TRUE)) %>%
+  mutate(hhi_dev = country_hhi - mean(country_hhi), wage_dev = wage_growth_pct - mean(wage_growth_pct), lending_dev = lending_growth_pct - mean(lending_growth_pct)) %>%
   ungroup()
 
 fit_influence_diag <- function(data, outcome_var, outcome_label) {
@@ -1070,20 +1048,20 @@ For Question 3, @tbl-app-q3-excluded-years reports the investor-migration gap fo
 #| label: app-q3-excluded-years
 
 q3_excluded_years_tbl <- housing_finance %>%
-  filter(loan_type == "investor", value_type == "Value", series_type == "Original", financial_year == "2020-21") %>%
+  filter(state %in% state_levels, loan_type == "investor", financial_year == "2020-21") %>%
   group_by(financial_year, state) %>%
-  summarise(investor_value = sum(housing_finance, na.rm = TRUE), .groups = "drop") %>%
+  summarise(investor_value = sum(housing_finance), .groups = "drop") %>%
   group_by(financial_year) %>%
-  mutate(total_investor_value = sum(investor_value, na.rm = TRUE), investor_share = investor_value / total_investor_value) %>%
+  mutate(total_investor_value = sum(investor_value), investor_share = investor_value / total_investor_value) %>%
   ungroup() %>%
   left_join(
     overseas_migration %>%
       filter(state %in% state_levels, country_of_birth != "Australia", financial_year == "2020-21") %>%
       mutate(pos_nom = pmax(net_overseas_migration, 0)) %>%
       group_by(financial_year, state) %>%
-      summarise(pos_nom = sum(pos_nom, na.rm = TRUE), .groups = "drop") %>%
+      summarise(pos_nom = sum(pos_nom), .groups = "drop") %>%
       group_by(financial_year) %>%
-      mutate(total_pos_nom = sum(pos_nom, na.rm = TRUE), migration_share = pos_nom / total_pos_nom) %>%
+      mutate(total_pos_nom = sum(pos_nom), migration_share = pos_nom / total_pos_nom) %>%
       ungroup() %>%
       select(financial_year, state, migration_share), by = c("financial_year", "state")) %>%
   mutate(investor_share = round(investor_share * 100, 1), migration_share = round(migration_share * 100, 1), gap_pp = round(investor_share - migration_share, 1)) %>%
@@ -1337,7 +1315,8 @@ perm_diff_var <- apply(swap_grid, 1, function(swap_row) {
   var(recent_perm) - var(early_perm)
 })
 
-q3_dispersion_test_tbl <- tibble(observed_variance_difference = round(obs_diff_var, 3), p_value = round(mean(perm_diff_var >= obs_diff_var), 4))
+q3_dispersion_test_tbl <- tibble(`Observed Variance Difference` = round(obs_diff_var, 3), `P value` = round(mean(perm_diff_var >= obs_diff_var), 4)
+)
 ```
 
 ```{r}
