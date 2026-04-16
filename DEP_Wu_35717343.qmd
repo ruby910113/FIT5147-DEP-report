@@ -35,10 +35,10 @@ editor: visual
 
 {\large Data Exploration Project}\\[1.8cm]
 
-TingTing Wu\\
+Ting-Ting Wu\\
 Student ID: 35717343\\[1.2cm]
 
-FIT5147 Data Exploration and Visualization\\
+FIT5147 Data Exploration and Visualisation\\
 Semester 1, 2026\\
 Monash University\\
 Tutors: Bruno Mendivez \& Simone Rusin\\
@@ -108,7 +108,7 @@ For the housing finance data, I used the `Data1` sheet from both the owner-occup
 
 For the Wage Price Index data, I also used the `Data1` sheet and followed a similar process. I read the metadata rows separately, created temporary series column names, extracted variables such as state and wage measure, and reshaped the data into long format. I then created year, month, and financial year variables to produce a final tidy dataset called `wage_price_index`.
 
-Overall, this step turned the original Excel workbooks into consistent long-format datasets that could be compared across states and time. It also made the later checking, filtering, and analysis much easier. The tidy datasets and all data processing code used in this project are available in my [GitHub repository](https://github.com/ruby910113/FIT5147-DEP-report).
+Overall, this step turned the original Excel workbooks into consistent long-format datasets that could be compared across states and time. It also made the later checking, filtering, and analysis much easier. 
 
 ```{r}
 # File path for the overseas migration workbook
@@ -127,8 +127,7 @@ read_om_sheet <- function(sheet, state, range, file_path) {
   
   # Use the first row as column names
   om_col_names <- om_raw[1, ] %>%
-    unlist() %>%
-    as.character()
+    unlist() 
   
   om_data <- om_raw[-1, ]
   names(om_data) <- om_col_names
@@ -138,22 +137,19 @@ read_om_sheet <- function(sheet, state, range, file_path) {
   
   # Remove notes (such as (d)) from the year columns
   om_year_cols <- names(om_data)[-(1:2)]
-  om_clean_years <- str_remove(om_year_cols, "\\([A-Za-z]+\\)$")
+  om_clean_years <- str_remove(om_year_cols, "\\(.*?\\)")
   names(om_data)[-(1:2)] <- om_clean_years
   
   om_data %>%
-    mutate(state = state,
-           sacc_code = str_pad(as.character(sacc_code), width = 4, pad = "0")) %>%
-    pivot_longer(cols = matches("^\\d{4}-\\d{2}$"),
-                 names_to = "financial_year",
-                 values_to = "net_overseas_migration") %>%
+    mutate(state = state, sacc_code = str_pad(sacc_code, width = 4, pad = "0")) %>%
+    pivot_longer(cols = matches("^\\d{4}-\\d{2}$"), names_to = "financial_year", values_to = "net_overseas_migration") %>%
     mutate(net_overseas_migration = as.numeric(net_overseas_migration)) %>%
     select(state, sacc_code, country_of_birth, financial_year, net_overseas_migration)
 }
 
 # Combine all sheets into one dataset
-overseas_migration <- pmap_dfr(om_sheet_info, \(sheet, state, range) read_om_sheet(sheet, state, range, om_file_path)) %>%
-  filter(!is.na(country_of_birth))
+overseas_migration <- om_sheet_info %>%
+  pmap_dfr(read_om_sheet, file_path = om_file_path)
 
 rm(om_sheet_info)
 ```
@@ -209,10 +205,7 @@ read_housing_finance_data1 <- function(file_path, loan_type) {
 
 # Combine owner-occupier and investor data
 housing_finance <- bind_rows(
-  read_housing_finance_data1(
-    file_path = "data/560104.xlsx", loan_type = "owner_occupier"),
-  read_housing_finance_data1(
-    file_path = "data/560114.xlsx", loan_type = "investor"))
+  read_housing_finance_data1(file_path = "data/560104.xlsx", loan_type = "owner_occupier"), read_housing_finance_data1(file_path = "data/560114.xlsx", loan_type = "investor"))
 ```
 
 ```{r}
@@ -234,8 +227,8 @@ names(wpi_data) <- c("date", series_cols)
 # Make a metadata table
 wpi_series_info <- tibble(
   series_col = series_cols,
-  full_name = as.character(unlist(wpi_meta[1, -1])),
-  unit = as.character(unlist(wpi_meta[2, -1]))) %>%
+  full_name = unlist(wpi_meta[1, -1]),
+  unit = unlist(wpi_meta[2, -1])) %>%
   separate(full_name, into = c("wpi_measure", "pay_type", "state", "sector", "industry", "blank"), sep = "\\s*;\\s*", extra = "drop", fill = "right") %>%
   mutate(
     across(c(wpi_measure, pay_type, state, sector, industry), str_squish),
@@ -249,8 +242,7 @@ wpi_series_info <- tibble(
 # Turn the data into long format
 wage_price_index <- wpi_data %>%
   mutate(year = year(date), month = month(date), 
-         financial_year = if_else(
-           month(date) >= 7,
+         financial_year = if_else(month(date) >= 7,
            paste0(year(date), "-", str_sub(year(date) + 1, 3, 4)),
            paste0(year(date) - 1, "-", str_sub(year(date), 3, 4)))) %>%
   pivot_longer(cols = starts_with("series_"), names_to = "series_col", values_to = "wage_price_index") %>%
@@ -415,7 +407,7 @@ state_colors <- c(
   "Northern Territory" = "#a6761d",
   "Australian Capital Territory" = "#666666")
 
-# Wage growth: state-level and national-level
+# Wage growth
 wpi_state_fy <- wage_price_index %>%
   filter(state %in% state_levels) %>%
   group_by(financial_year, state) %>%
@@ -432,7 +424,7 @@ wpi_nat_fy <- wage_price_index %>%
   arrange(financial_year) %>%
   mutate(wage_growth_pct = (annual_wpi / lag(annual_wpi) - 1) * 100, start_year = as.integer(str_sub(financial_year, 1, 4)))
 
-# Housing lending growth: state-level and national-level
+# Housing lending growth
 hf_state_fy <- housing_finance %>%
   filter(state %in% state_levels) %>%
   group_by(financial_year, state) %>%
@@ -449,7 +441,7 @@ hf_nat_fy <- housing_finance %>%
   arrange(financial_year) %>%
   mutate(lending_growth_pct = (total_lending / lag(total_lending) - 1) * 100, start_year = as.integer(str_sub(financial_year, 1, 4)))
 
-# Combined data for Figure 1
+# Combined data for Fig 1
 overall_growth_states <- bind_rows(
   wpi_state_fy %>%
     transmute(financial_year, start_year, state, series = "Wage growth", growth_pct = wage_growth_pct),
@@ -594,28 +586,14 @@ origin_levels <- c("Southern & Central Asia", "North-East Asia", "South-East Asi
 
 add_origin_group <- function(df) {
   df %>%
-    mutate(
-      sacc_code = as.character(sacc_code),
-      origin_group = case_when(
-        str_sub(sacc_code, 1, 1) == "1" ~ "Oceania & Antarctica",
-        str_sub(sacc_code, 1, 1) == "2" ~ "North-West Europe",
-        str_sub(sacc_code, 1, 1) == "3" ~ "Southern & Eastern Europe",
-        str_sub(sacc_code, 1, 1) == "4" ~ "North Africa & Middle East",
-        str_sub(sacc_code, 1, 1) == "5" ~ "South-East Asia",
-        str_sub(sacc_code, 1, 1) == "6" ~ "North-East Asia",
-        str_sub(sacc_code, 1, 1) == "7" ~ "Southern & Central Asia",
-        str_sub(sacc_code, 1, 1) == "8" ~ "Americas",
-        str_sub(sacc_code, 1, 1) == "9" ~ "Sub-Saharan Africa",
-        TRUE ~ NA_character_))
+    mutate(sacc_code = as.character(sacc_code), origin_group = case_when(str_sub(sacc_code, 1, 1) == "1" ~ "Oceania & Antarctica", str_sub(sacc_code, 1, 1) == "2" ~ "North-West Europe", str_sub(sacc_code, 1, 1) == "3" ~ "Southern & Eastern Europe", str_sub(sacc_code, 1, 1) == "4" ~ "North Africa & Middle East", str_sub(sacc_code, 1, 1) == "5" ~ "South-East Asia", str_sub(sacc_code, 1, 1) == "6" ~ "North-East Asia", str_sub(sacc_code, 1, 1) == "7" ~ "Southern & Central Asia", str_sub(sacc_code, 1, 1) == "8" ~ "Americas", str_sub(sacc_code, 1, 1) == "9" ~ "Sub-Saharan Africa", TRUE ~ NA_character_))
 }
 
-# Add broad origin groups based on the first digit of SACC code
 overseas_migration_grouped <- overseas_migration %>%
   filter(state %in% state_levels, country_of_birth != "Australia") %>%
   add_origin_group()
 
-# Figure 1 data: origin-group shares within each state-year
-# Use positive net inflows only when calculating composition shares
+# Figure 1
 om_origin_state <- overseas_migration_grouped %>%
   mutate(pos_nom = pmax(net_overseas_migration, 0)) %>%
   group_by(financial_year, state, origin_group) %>%
@@ -625,8 +603,7 @@ om_origin_state <- overseas_migration_grouped %>%
   ungroup() %>%
   filter(total_pos_nom > 0)
 
-# Figure 2 data: country-level concentration index (HHI)
-# Higher HHI means migrant inflows are concentrated in fewer countries of birth
+# Figure 2
 om_country_concentration <- overseas_migration_grouped %>%
   mutate(pos_nom = pmax(net_overseas_migration, 0)) %>%
   group_by(financial_year, state) %>%
@@ -802,7 +779,7 @@ Overall, @fig-q2-origin-heatmap and @fig-q2-within-state-coef suggest that migra
 
 q3_period_levels <- c("2004-05 to 2011-12", "2012-13 to 2019-20", "2023-24 to 2024-25")
 
-# 1. Migration demand: state share of positive migrant inflows
+# Migration demand
 q3_migration_state <- overseas_migration %>%
   filter(state %in% state_levels, country_of_birth != "Australia") %>%
   mutate(pos_nom = pmax(net_overseas_migration, 0)) %>%
@@ -812,7 +789,7 @@ q3_migration_state <- overseas_migration %>%
   mutate(total_pos_nom = sum(pos_nom), migration_share = pos_nom / total_pos_nom) %>%
   ungroup()
 
-# 2. Investor lending: state share of investor lending value
+# Investor lending
 q3_investor_state <- housing_finance %>%
   filter(state %in% state_levels, loan_type == "investor") %>%
   group_by(financial_year, state) %>%
@@ -822,14 +799,14 @@ q3_investor_state <- housing_finance %>%
     investor_share = investor_value / total_investor_value) %>%
   ungroup()
 
-# 3. Gap = investor share - migration share
+# Gap(investor share - migration share)
 q3_gap_yearly <- q3_investor_state %>%
   left_join(
     q3_migration_state %>%
       select(financial_year, state, migration_share, pos_nom), by = c("financial_year", "state")) %>%
   mutate(start_year = as.integer(str_sub(financial_year, 1, 4)),gap_pp = (investor_share - migration_share) * 100, period = case_when(start_year >= 2004 & start_year <= 2011 ~ "2004-05 to 2011-12", start_year >= 2012 & start_year <= 2019 ~ "2012-13 to 2019-20", financial_year %in% c("2023-24", "2024-25") ~ "2023-24 to 2024-25"))
 
-# 4. Average gap for each state within each map period
+# Average gap for each state
 q3_map_periods <- q3_gap_yearly %>%
   filter(!is.na(period)) %>%
   group_by(period, state) %>%
@@ -837,7 +814,7 @@ q3_map_periods <- q3_gap_yearly %>%
   mutate(country = "Australia", period = factor(period, levels = q3_period_levels), label_text = paste0(state, "\n", sprintf("%+.1f pp", mean_gap_pp))) %>%
   arrange(period, state)
 
-# 5. Change table for writing
+# Change table
 q3_change_summary <- q3_map_periods %>%
   select(period, state, mean_gap_pp) %>%
   pivot_wider(names_from = period, values_from = mean_gap_pp) %>%
@@ -845,7 +822,7 @@ q3_change_summary <- q3_map_periods %>%
     change_precovid_to_recent = `2023-24 to 2024-25` - `2012-13 to 2019-20`) %>%
   arrange(desc(change_early_to_recent))
 
-# 6. Tables for checking the biggest positive and negative gaps
+# Tables for checking
 q3_highest_gap <- q3_map_periods %>%
   group_by(period) %>%
   slice_max(mean_gap_pp, n = 1, with_ties = FALSE) %>%
@@ -864,7 +841,7 @@ q3_tableau_maps <- q3_map_periods %>%
 ```{r}
 #| label: q3-export-tableau
 
-# Main file for the three maps
+# Main file
 q3_tableau_maps <- q3_map_periods %>%
   mutate(period = as.character(period)) %>%
   select(country, state, period, mean_gap_pp, mean_investor_share, mean_migration_share, label_text)
@@ -888,20 +865,15 @@ Overall, @fig-q3-maps suggests that the investor-migration gap became less even 
 
 map_img <- image_read_pdf("figure/comb_map.pdf", density = 300)
 
-subtitle_grob <- gridtext::richtext_grob(
-  "<span style='color:#2C7FB8; font-weight:600;'>Blue</span> = higher investor lending than migration demand<br>
-   <span style='color:#E67E22; font-weight:600;'>Orange</span> = higher migration demand than investor lending", hjust = 0.5, gp = gpar(fontsize = 15, fontface = "bold"), box_gp = gpar(col = NA, fill = NA))
+subtitle_grob <- gridtext::richtext_grob( "<span style='color:#2C7FB8; font-weight:600;'>Blue</span> = higher investor lending than migration demand<br> <span style='color:#E67E22; font-weight:600;'>Orange</span> = higher migration demand than investor lending", hjust = 0.5, gp = gpar(fontsize = 15, fontface = "bold"), box_gp = gpar(col = NA, fill = NA))
 
-title_plot <- ggdraw() +
-  draw_label("Geographic Gaps Between\nInvestor Lending and Migration Demand Across Australian States", hjust = 0.5, vjust = 0.5, fontface = "bold", size = 18, lineheight = 1.05) +
-  draw_grob(subtitle_grob, x = 0.15, width = 0.70, height = 0.24) +
+final_plot <- ggdraw() +
+  draw_image(map_img, scale = 0.85, y = -0.05) +
+  draw_label("Geographic Gaps Between \n Investor Lending and Migration Demand Across Australian States", x = 0.5, y = 0.95, hjust = 0.5, fontface = "bold", size = 18) +
+  draw_grob(subtitle_grob, x = 0.1, y = 0.88, width = 0.78, height = 0.05) +
   theme_void()
 
-image_plot <- ggdraw() +
-  draw_image(map_img, width = 1, height = 1) +
-  theme_void()
-
-plot_grid(title_plot, image_plot, ncol = 1, rel_heights = c(0.14, 0.86))
+final_plot
 ```
 
 \clearpage
@@ -914,7 +886,7 @@ Taken together with @fig-q3-maps, these findings show that the gap between inves
 
 # Reflection
 
-This project was challenging for me in many ways, but I also learned a lot from it. The hardest part was the page limit. I usually like trying many different ways to explore data in R, but in this assignment I had to answer three large questions within a small amount of space. Because of that, I had to think much more carefully about what to include and what to leave out. This made me realise that data exploration is not only about doing as much analysis as possible, but also about choosing the clearest and most useful way to communicate the main story.
+This project was challenging in many ways, but I also learned a great deal from it. The most difficult part was the page limit. As a Master of Business Analytics student, I use R frequently and have some background in statistics, so I usually like exploring data from multiple angles. However, in this assignment I had to answer three large research questions within a very limited space. This forced me to think much more carefully about what to include and what to leave out. Through this process, I realised that data exploration is not just about doing as much analysis as possible, but also about selecting the clearest and most meaningful way to communicate the main story.
 
 Another challenge was deciding how to calculate and summarise the data so that each question could be answered well with only one or two figures. This taught me an important lesson about data visualisation: a good visualisation is not just about making more plots, but about choosing the right calculation and the right visual form. In this project, I learned how to use calculations more carefully so that one figure could answer more than one part of a question, which helped me reduce duplicate or repetitive plots and make the report more concise. I also improved a lot in debugging, because the ABS datasets were complicated to clean and combine, and many parts of the analysis needed repeated calculations and custom functions. If I did this project again, I would plan the structure earlier, decide on the final visualisations sooner, and think earlier about how each figure could answer the research question as directly as possible.
 
@@ -957,9 +929,12 @@ Zhu H (2024). kableExtra: Construct Complex Table with 'kable' and Pipe Syntax. 
 
 # AI statement
 
-I mainly used GPT to help write functions for the analysis. For debugging and grammar checking, I used Positron’s built-in assistant, which helped me identify coding errors and improve the wording of the report. These tools made the analysis process more efficient and helped me complete the report more smoothly.
+I mainly used Positron while writing my code, so I relied on its built-in Codex assistant for debugging, coding support, grammar checking, code revision, and some LaTeX writing. I also used Gemini mainly when reading in data, especially for writing functions, and for a few questions that Codex did not answer well.
+
+In my experience, Codex was a very useful support tool. It also helped me improve the presentation of some plots and make them look more polished. Gemini was especially helpful for writing functions, as its code was often more organised and concise than Codex’s. At the same time, I did not rely too heavily on these AI tools, because they sometimes generated unnecessary code or over-processed the analysis. In some cases, this made the plots look more complicated and the code harder to debug. Because of this, I still needed to evaluate their suggestions carefully and decide what was actually useful for my project.
 
 \newpage
+
 \appendix
 
 # Appendix
