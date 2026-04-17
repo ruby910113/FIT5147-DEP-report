@@ -385,7 +385,6 @@ To address the first research question, I used R to calculate and compare annual
 
 ```{r}
 #| label: q1-prepare-data
-#| include: false
 
 state_levels <- c(
   "New South Wales",
@@ -406,6 +405,13 @@ state_colors <- c(
   "Tasmania" = "#e6ab02",
   "Northern Territory" = "#a6761d",
   "Australian Capital Territory" = "#666666")
+
+# Shared legend settings for state lines and Total Australia
+state_legend_levels <- c(state_levels, "Total Australia")
+
+state_colors_with_total <- c(state_colors, "Total Australia" = "black")
+
+state_linetypes <- c(setNames(rep("solid", length(state_levels)), state_levels), "Total Australia" = "dashed")
 
 # Wage growth
 wpi_state_fy <- wage_price_index %>%
@@ -446,16 +452,16 @@ overall_growth_states <- bind_rows(
   wpi_state_fy %>%
     transmute(financial_year, start_year, state, series = "Wage growth", growth_pct = wage_growth_pct),
   hf_state_fy %>%
-    transmute(financial_year, start_year, state, series = "Housing lending growth", growth_pct = lending_growth_pct)) %>%
-  filter(!is.na(growth_pct))
+    transmute(financial_year, start_year, state, series = "Housing lending growth", growth_pct = lending_growth_pct)) 
 
 overall_growth_nat <- bind_rows(
   wpi_nat_fy %>%
-    transmute(financial_year, start_year, series = "Wage growth", growth_pct = wage_growth_pct),
+    transmute(financial_year, start_year, state = "Total Australia", series = "Wage growth", growth_pct = wage_growth_pct),
   hf_nat_fy %>%
-    transmute(financial_year, start_year, series = "Housing lending growth", growth_pct = lending_growth_pct)
-) %>%
-  filter(!is.na(growth_pct))
+    transmute(financial_year, start_year, state = "Total Australia", series = "Housing lending growth", growth_pct = lending_growth_pct))
+
+overall_growth_plot <- bind_rows(overall_growth_states, overall_growth_nat) %>%
+  mutate(state = factor(state, levels = state_legend_levels))
 
 # Investor share of total housing lending value
 investor_share_value_state <- housing_finance %>%
@@ -476,12 +482,14 @@ investor_share_value_nat <- housing_finance %>%
   mutate(share = annual_total / sum(annual_total)) %>%
   ungroup() %>%
   filter(loan_type == "investor") %>%
-  mutate(start_year = as.integer(str_sub(financial_year, 1, 4)))
+  mutate(start_year = as.integer(str_sub(financial_year, 1, 4)), state = "Total Australia")
+
+investor_share_value_plot <- bind_rows(investor_share_value_state, investor_share_value_nat) %>%
+  mutate(state = factor(state, levels = state_legend_levels))
 ```
 
 ```{r}
 #| label: q1-inline-stats
-#| include: false
 
 nat_wage <- overall_growth_nat %>%
   filter(series == "Wage growth")
@@ -516,27 +524,21 @@ By contrast, housing lending growth is much more volatile and differs more acros
 #| fig-width: 10
 #| fig-height: 7
 
-p_lending <- ggplot() +
-  geom_line(
-    data = overall_growth_states %>%
-      filter(series == "Housing lending growth"), aes(x = start_year, y = growth_pct, colour = state), linewidth = 0.9, alpha = 0.9) +
-  geom_line(
-    data = overall_growth_nat %>%
-      filter(series == "Housing lending growth"), aes(x = start_year, y = growth_pct), colour = "black", linetype = "dashed", linewidth = 1.1) +
-  scale_colour_manual(values = state_colors, name = "State") +
+p_lending <- ggplot(overall_growth_plot %>% 
+                      filter(series == "Housing lending growth"),
+  aes(x = start_year, y = growth_pct, colour = state, linetype = state)) +
+  geom_line(linewidth = 0.9, alpha = 0.9) +
+  scale_colour_manual(values = state_colors_with_total, name = "State") +
+  scale_linetype_manual(values = state_linetypes, name = "State") +
   scale_x_continuous(breaks = seq(2005, 2024, by = 3), labels = function(x) paste0(x, "-", str_sub(x + 1, 3, 4))) +
   labs(title = "Housing lending growth", x = NULL, y = "Annual growth rate (%)") +
   theme_minimal(base_size = 11) +
   theme(legend.position = "bottom", panel.grid.minor = element_blank(), plot.title = element_text(face = "bold", hjust = 0.5))
 
-p_wage <- ggplot() +
-  geom_line(data = overall_growth_states %>%
-              filter(series == "Wage growth"),
-            aes(x = start_year, y = growth_pct, colour = state), linewidth = 0.9, alpha = 0.9) +
-  geom_line(
-    data = overall_growth_nat %>%
-      filter(series == "Wage growth"), aes(x = start_year, y = growth_pct), colour = "black", linetype = "dashed", linewidth = 1.1) +
-  scale_colour_manual(values = state_colors, name = "State") +
+p_wage <- ggplot(overall_growth_plot %>% filter(series == "Wage growth"), aes(x = start_year, y = growth_pct, colour = state, linetype = state)) +
+  geom_line(linewidth = 0.9, alpha = 0.9) +
+  scale_colour_manual(values = state_colors_with_total, name = "State") +
+  scale_linetype_manual(values = state_linetypes, name = "State") +
   scale_x_continuous(breaks = seq(2005, 2024, by = 3), labels = function(x) paste0(x, "-", str_sub(x + 1, 3, 4))) +
   labs(title = "Wage growth", x = "Financial year", y = "Annual growth rate (%)") +
   theme_minimal(base_size = 11) +
@@ -560,10 +562,10 @@ New South Wales stands out as the most investor-oriented market over the long ru
 #| fig-height: 5
 #| fig-width: 10
 
-ggplot(investor_share_value_state, aes(x = start_year, y = share, colour = state)) +
+ggplot(investor_share_value_plot, aes(x = start_year, y = share, colour = state, linetype = state)) +
   geom_line(linewidth = 0.9) +
-  geom_line(data = investor_share_value_nat, aes(x = start_year, y = share), inherit.aes = FALSE, colour = "black", linetype = "dashed", linewidth = 1) +
-  scale_colour_manual(values = state_colors, name = "State") +
+  scale_colour_manual(values = state_colors_with_total, name = "State") +
+  scale_linetype_manual(values = state_linetypes, name = "State") +
   scale_y_continuous(labels = label_percent(accuracy = 1)) +
   scale_x_continuous(breaks = seq(2004, 2024, by = 4), labels = function(x) paste0(x, "-", str_sub(x + 1, 3, 4))) +
   labs(title = "Investor Share of Total Housing Lending Value by State", x = "Financial year", y = "Investor share of total lending value") +
