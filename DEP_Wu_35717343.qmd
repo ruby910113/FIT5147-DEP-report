@@ -9,7 +9,7 @@ format:
     papersize: a4
     fontsize: 11pt
     geometry:
-      - margin=2.2cm
+      - margin=2cm
     include-in-header:
       text: |
         \usepackage{fancyhdr}
@@ -44,7 +44,7 @@ Monash University\\
 Tutors: Bruno Mendivez \& Simone Rusin\\
 Applied class: Applied 01\\[1.2cm]
 
-29 March 2026
+17 April 2026
 \end{center}
 
 \newpage
@@ -178,24 +178,13 @@ read_housing_finance_data1 <- function(file_path, loan_type) {
     series_type = as.character(unlist(hf_meta[3, -1])),
     data_type = as.character(unlist(hf_meta[4, -1])),
     frequency = as.character(unlist(hf_meta[5, -1]))) %>%
-    separate(full_name,
-             into = c("sector", "collection", "borrower_type", "dwelling_type", "state", "measure", "value_type", "blank"),
-             sep = "\\s*;\\s*",
-             extra = "drop",
-             fill = "right") %>%
+    separate(full_name, into = c("sector", "collection", "borrower_type", "dwelling_type", "state", "measure", "value_type", "blank"), sep = "\\s*;\\s*", extra = "drop", fill = "right") %>%
     select(series_col, state, borrower_type, dwelling_type, measure, value_type, unit, series_type)
   
   # Turn the data into long format
   hf_long <- hf_data %>%
-    mutate(year = year(date),
-           month = month(date),
-           financial_year = if_else(
-             month(date) >= 7,
-             paste0(year(date), "-", str_sub(year(date) + 1, 3, 4)),
-             paste0(year(date) - 1, "-", str_sub(year(date), 3, 4)))) %>%
-    pivot_longer(cols = starts_with("series_"),
-                 names_to = "series_col",
-                 values_to = "housing_finance") %>%
+    mutate(year = year(date), month = month(date), financial_year = if_else(month(date) >= 7, paste0(year(date), "-", str_sub(year(date) + 1, 3, 4)), paste0(year(date) - 1, "-", str_sub(year(date), 3, 4)))) %>%
+    pivot_longer(cols = starts_with("series_"), names_to = "series_col", values_to = "housing_finance") %>%
     left_join(hf_series_info, by = "series_col") %>%
     mutate(loan_type = loan_type) %>%
     select(year, month, financial_year, state, loan_type, value_type, unit, series_type, housing_finance)
@@ -381,7 +370,7 @@ This section explores the **relationships between housing lending, overseas migr
 
 ## Housing Lending, Wage Growth and Lending Structure Across Australian States
 
-To address the first research question, I used R to calculate and compare annual housing lending growth and annual wage growth across Australian states from 2005-06 to 2024-25. I then used line plots to examine whether these two measures moved together over time, and to show how the investor share of total lending value changed across states. Further calculation details for these measures are provided in @sec-appendix-q1-details.
+To address the first research question, I used R to calculate annual housing lending growth and annual wage growth across Australian states from 2005-06 to 2024-25. I used line plots because they make long-run trends, short-run volatility, and cross-state differences easy to compare over time. I then used these plots to examine whether the two measures moved together and how the investor share of total lending value changed across states. Further calculation details are provided in @sec-appendix-q1-details.
 
 ```{r}
 #| label: q1-prepare-data
@@ -554,7 +543,7 @@ p_wage <- ggplot(overall_growth_plot %>% filter(series == "Wage growth"), aes(x 
 
 @fig-q1-structure-value examines how the investor share of total housing lending value changed across states from 2004-05 to 2024-25. The national pattern is clearly cyclical. The investor share starts at about `r scales::percent(investor_share_value_nat$share[investor_share_value_nat$financial_year == "2004-05"], accuracy = 0.1)`, rises to a peak of `r scales::percent(max(investor_share_value_nat$share), accuracy = 0.1)` in 2014-15, then falls sharply to `r scales::percent(min(investor_share_value_nat$share), accuracy = 0.1)` in 2020-21 before recovering to `r scales::percent(investor_share_value_nat$share[investor_share_value_nat$financial_year == "2024-25"], accuracy = 0.1)` by 2024-25.
 
-New South Wales stands out as the most investor-oriented market over the long run. Its average investor share is about `r scales::percent(value_state_summary$mean_share[value_state_summary$state == "New South Wales"], accuracy = 0.1)`, and it remains above the national share in `r scales::percent(value_vs_nat$prop_above_nat[value_vs_nat$state == "New South Wales"], accuracy = 1)` of years, peaking at `r scales::percent(value_state_summary$peak_share[value_state_summary$state == "New South Wales"], accuracy = 0.1)` in 2014-15. By contrast, Tasmania has one of the lowest average investor shares, at about `r scales::percent(value_state_summary$mean_share[value_state_summary$state == "Tasmania"], accuracy = 0.1)`. Northern Territory and Tasmania show a somewhat similar long-run pattern, with investor shares generally remaining below the national benchmark for much of the period. However, both rise sharply after the COVID-19 period. By 2024-25, Northern Territory reaches `r scales::percent(investor_share_value_state$share[investor_share_value_state$state == "Northern Territory" & investor_share_value_state$financial_year == "2024-25"], accuracy = 0.1)` and Tasmania reaches `r scales::percent(investor_share_value_state$share[investor_share_value_state$state == "Tasmania" & investor_share_value_state$financial_year == "2024-25"], accuracy = 0.1)`, compared with the national share of `r scales::percent(investor_share_value_nat$share[investor_share_value_nat$financial_year == "2024-25"], accuracy = 0.1)`. Western Australia follows a different pattern: after 2008-09, its investor share begins to move further away from the national benchmark, before recovering again after the 2020-21 low. It rises from `r scales::percent(investor_share_value_state$share[investor_share_value_state$state == "Western Australia" & investor_share_value_state$financial_year == "2020-21"], accuracy = 0.1)` in 2020-21 to `r scales::percent(investor_share_value_state$share[investor_share_value_state$state == "Western Australia" & investor_share_value_state$financial_year == "2024-25"], accuracy = 0.1)` in 2024-25. The other states generally follow the national cycle more closely and do not show such distinctive departures. Overall, the figure suggests that the structure of housing lending has changed substantially over time and that investor activity has been much more important in some state housing markets than in others.
+New South Wales stands out as the most investor-oriented market over the long run. Its average investor share is about `r scales::percent(value_state_summary$mean_share[value_state_summary$state == "New South Wales"], accuracy = 0.1)`, and it remains above the national share in `r scales::percent(value_vs_nat$prop_above_nat[value_vs_nat$state == "New South Wales"], accuracy = 1)` of years, peaking at `r scales::percent(value_state_summary$peak_share[value_state_summary$state == "New South Wales"], accuracy = 0.1)` in 2014-15. By contrast, Tasmania has one of the lowest average investor shares, at about `r scales::percent(value_state_summary$mean_share[value_state_summary$state == "Tasmania"], accuracy = 0.1)`. Northern Territory and Tasmania show a somewhat similar long-run pattern, with investor shares generally remaining below the national benchmark for much of the period. However, both rise sharply after the COVID-19 period. By 2024-25, Northern Territory reaches `r scales::percent(investor_share_value_state$share[investor_share_value_state$state == "Northern Territory" & investor_share_value_state$financial_year == "2024-25"], accuracy = 0.1)` and Tasmania reaches `r scales::percent(investor_share_value_state$share[investor_share_value_state$state == "Tasmania" & investor_share_value_state$financial_year == "2024-25"], accuracy = 0.1)`, compared with the national share of `r scales::percent(investor_share_value_nat$share[investor_share_value_nat$financial_year == "2024-25"], accuracy = 0.1)`. Western Australia follows a different pattern: after 2008-09, its investor share begins to move further away from the national benchmark, before recovering again after the 2020-21 low. It rises from `r scales::percent(investor_share_value_state$share[investor_share_value_state$state == "Western Australia" & investor_share_value_state$financial_year == "2020-21"], accuracy = 0.1)` in 2020-21 to `r scales::percent(investor_share_value_state$share[investor_share_value_state$state == "Western Australia" & investor_share_value_state$financial_year == "2024-25"], accuracy = 0.1)` in 2024-25. The other states generally follow the national cycle more closely and do not show such distinctive departures.
 
 ```{r}
 #| label: fig-q1-structure-value
@@ -579,7 +568,7 @@ Overall, @fig-q1-overall-growth and @fig-q1-structure-value suggest that housing
 
 ## How have the origins of overseas migrants and their state settlement patterns changed across Australian states over time, and what are their links with wage growth and housing lending?
 
-To address the second research question, I also used R to examine how the origins of overseas migrants changed across Australian states from 2004-05 to 2024-25. I then examined whether migrant-origin concentration within each state was associated with wage growth and housing lending growth.
+To address the second research question, I examined how the origins of overseas migrants changed across Australian states from 2004-05 to 2024-25, and whether migrant-origin concentration within each state was associated with wage growth and housing lending growth.
 
 ```{r}
 #| label: q2-prepare-data
@@ -725,7 +714,7 @@ lending_tas_est <- q2_lending_coef %>%
 
 ### Changing Origins of Migrant Inflows Across Australian States
 
-The heatmap in @fig-q2-origin-heatmap shows a clear long-run shift in the origins of migrant inflows across most states. The most notable pattern is the rising importance of Southern and Central Asia, whose national share of positive overseas migrant inflows increases from about `r scales::percent(sca_2004, accuracy = 0.1)` in 2004-05 to `r scales::percent(sca_2024, accuracy = 0.1)` in 2024-25. This increase appears across nearly all states, but is especially strong in the Australian Capital Territory and Victoria, where Southern and Central Asia accounts for about `r scales::percent(act_sca_2024, accuracy = 0.1)` and `r scales::percent(vic_sca_2024, accuracy = 0.1)` of positive inflows in 2024-25. By contrast, North-West Europe becomes less important in most states, although it remains more visible in Western Australia, where it still accounts for about `r scales::percent(wa_nwe_2024, accuracy = 0.1)` of positive inflows in 2024-25. A more unusual short-run pattern appears around 2020-21, when Oceania and Antarctica become more visible in several states during the pandemic period. This increase is especially noticeable in most states apart from the Australian Capital Territory. 
+To examine how migrant origins changed across states and over time, I used a heatmap because it compares state, time, and origin composition in a compact form. This makes broad composition shifts and short-run changes easier to see than separate line charts or stacked plots. @fig-q2-origin-heatmap shows a clear long-run shift in the origins of migrant inflows across most states. The most notable pattern is the rising importance of Southern and Central Asia, whose national share of positive overseas migrant inflows increases from about `r scales::percent(sca_2004, accuracy = 0.1)` in 2004-05 to `r scales::percent(sca_2024, accuracy = 0.1)` in 2024-25. This increase appears across nearly all states, but is especially strong in the Australian Capital Territory and Victoria, where Southern and Central Asia accounts for about `r scales::percent(act_sca_2024, accuracy = 0.1)` and `r scales::percent(vic_sca_2024, accuracy = 0.1)` of positive inflows in 2024-25. By contrast, North-West Europe becomes less important in most states, although it remains more visible in Western Australia, where it still accounts for about `r scales::percent(wa_nwe_2024, accuracy = 0.1)` of positive inflows in 2024-25. A more unusual short-run pattern appears around 2020-21, when Oceania and Antarctica become more visible in several states during the pandemic period. This increase is especially noticeable in most states apart from the Australian Capital Territory.
 
 ```{r}
 #| label: fig-q2-origin-heatmap
@@ -852,7 +841,7 @@ q3_tableau_maps <- q3_map_periods %>%
   select(country, state, period, mean_gap_pp, mean_investor_share, mean_migration_share, label_text)
 ```
 
-To reduce the influence of unusually disrupted migration patterns during the pandemic and the immediate reopening period, I excluded 2020-21 to 2022-23 from the mapped comparison. In this section, migration demand is proxied by each state’s share of positive overseas migrant inflows, and the gap is defined as investor lending share minus migration-demand share. Using R, I calculated these measures for each state and year, then averaged them within three representative periods: an earlier period (2004-05 to 2011-12), a middle period (2012-13 to 2019-20), and a recent period (2023-24 to 2024-25). I then exported the summarised state-level table to Tableau and visualised the results as a set of choropleth maps using a diverging colour scheme centred at zero. Averaging within each period makes the differences across states easier to compare visually.
+To reduce the influence of unusually disrupted migration patterns during the pandemic and the immediate reopening period, I excluded 2020-21 to 2022-23 from the mapped comparison. In this section, migration demand is proxied by each state’s share of positive overseas migrant inflows, and the gap is defined as investor lending share minus migration-demand share. Using R, I calculated these measures for each state and year, then averaged them within three representative periods: an earlier period (2004-05 to 2011-12), a middle period (2012-13 to 2019-20), and a recent period (2023-24 to 2024-25). I then exported the summarised state-level table to Tableau and visualised the results as a set of choropleth maps using a diverging colour scheme centred at zero. A map is appropriate here because the research question is explicitly geographic, and the diverging scale makes it easier to distinguish states where investor lending is stronger than migration demand from those where migration demand is stronger. Averaging within each period also makes the state differences easier to compare visually by reducing year-to-year noise.
 
 Further calculation details for this gap measure are provided in @sec-appendix-q3-gap, and the excluded years are summarised separately in @sec-appendix-excluded-years.
 
@@ -862,7 +851,6 @@ Overall, @fig-q3-maps suggests that the investor-migration gap became less even 
 
 ```{r}
 #| label: fig-q3-maps
-#| fig-cap: Average gaps between investor lending share and migration-demand share across Australian states in three representative periods. Positive values indicate that a state's share of investor lending exceeded its share of migration demand, while negative values indicate the opposite.
 #| fig-align: center
 #| out-width: 100%
 #| fig-width: 10
@@ -870,12 +858,20 @@ Overall, @fig-q3-maps suggests that the investor-migration gap became less even 
 
 map_img <- image_read_pdf("figure/comb_map.pdf", density = 300)
 
-subtitle_grob <- gridtext::richtext_grob( "<span style='color:#2C7FB8; font-weight:600;'>Blue</span> = higher investor lending than migration demand<br> <span style='color:#E67E22; font-weight:600;'>Orange</span> = higher migration demand than investor lending", hjust = 0.5, gp = gpar(fontsize = 15, fontface = "bold"), box_gp = gpar(col = NA, fill = NA))
+subtitle_grob <- gridtext::richtext_grob(
+  "<span style='color:#2C7FB8; font-weight:600;'>Blue</span> = higher investor lending than migration demand<br>
+   <span style='color:#E67E22; font-weight:600;'>Orange</span> = higher migration demand than investor lending", hjust = 0.5, gp = gpar(fontsize = 15, fontface = "bold"), box_gp = gpar(col = NA, fill = NA))
+
+caption_grob <- gridtext::richtext_grob(
+  "Average gaps between investor lending share and migration-demand share across Australian states<br>
+   in three representative periods. Positive values indicate that a state's share of investor lending exceeded<br>
+   its share of migration demand, while negative values indicate the opposite.", hjust = 0.5, gp = gpar(fontsize = 13), box_gp = gpar(col = NA, fill = NA))
 
 final_plot <- ggdraw() +
-  draw_image(map_img, scale = 0.85, y = -0.05) +
-  draw_label("Geographic Gaps Between \n Investor Lending and Migration Demand Across Australian States", x = 0.5, y = 0.95, hjust = 0.5, fontface = "bold", size = 18) +
-  draw_grob(subtitle_grob, x = 0.1, y = 0.88, width = 0.78, height = 0.05) +
+  draw_image(map_img, scale = 0.85, y = -0.01) +
+  draw_label("Geographic Gaps Between \n Investor Lending and Migration Demand Across Australian States", x = 0.5, y = 0.98, hjust = 0.5, fontface = "bold", size = 18) +
+  draw_grob(subtitle_grob, x = 0.1, y = 0.91, width = 0.78, height = 0.05) +
+  draw_grob(caption_grob, x = 0.08, y = -0.01, width = 0.84, height = 0.08) +
   theme_void()
 
 final_plot
@@ -887,7 +883,7 @@ final_plot
 
 This report shows that housing lending, overseas migration and wage growth did not move together in one simple national pattern across Australian states. The exploration showed that housing lending growth was much more volatile than wage growth (@fig-q1-overall-growth), while the investor share of lending changed markedly over time and remained especially important in some states, particularly New South Wales (@fig-q1-structure-value). Migrant origins also changed clearly over the study period, with Southern and Central Asia becoming more prominent across many states (@fig-q2-origin-heatmap), but the within-state links between migrant-origin concentration and economic outcomes were uneven and were generally clearer for wage growth than for housing lending growth (@fig-q2-within-state-coef).
 
-Taken together with @fig-q3-maps, these findings suggest that the gap between investor lending and migration demand became more geographically concentrated over time, especially in New South Wales and Victoria. Overall, the original questions suggest that housing lending does not closely align with wage growth, migrant settlement patterns have shifted substantially, and the mismatch between investor activity and migration demand differs strongly across states. In this report, *Housing Lending, Overseas Migration and Wage Growth Across Australian States* is best understood as a state-specific rather than uniform national story. These conclusions are also broadly consistent with the supplementary statistical checks in @sec-appendix-supplementary-tests, although the additional support is weaker for the Question 3 result. These results are descriptive rather than causal, but they show that the relationships at the centre of Australia’s housing debate vary substantially across state housing markets.
+Taken together with @fig-q3-maps, these findings suggest that the gap between investor lending and migration demand became more geographically concentrated over time, especially in New South Wales and Victoria. Overall, the original questions suggest that housing lending does not closely align with wage growth, migrant settlement patterns have shifted substantially, and the mismatch between investor activity and migration demand differs strongly across states. In this report, *Housing Lending, Overseas Migration and Wage Growth Across Australian States* is best understood as a state-specific rather than uniform national story. These conclusions are also broadly consistent with the supplementary statistical checks in @sec-appendix-supplementary-tests, although the additional support is weaker for the Question 3 result. In particular, the mapped pattern for Question 3 is best interpreted as descriptive rather than strongly inferential. More broadly, these results identify associations and cross-state differences, but they do not establish that migration, wages, or lending activity directly cause one another. They nevertheless show that the relationships at the centre of Australia’s housing debate vary substantially across state housing markets.
 
 # Reflection
 
