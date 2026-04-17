@@ -888,7 +888,7 @@ Taken together with @fig-q3-maps, these findings show that the gap between inves
 
 This project was challenging in many ways, but I also learned a great deal from it. The most difficult part was the page limit. As a Master of Business Analytics student, I use R frequently and have some background in statistics, so I usually like exploring data from multiple angles. However, in this assignment I had to answer three large research questions within a very limited space. This forced me to think much more carefully about what to include and what to leave out. Through this process, I realised that data exploration is not just about doing as much analysis as possible, but also about selecting the clearest and most meaningful way to communicate the main story.
 
-Another challenge was deciding how to calculate and summarise the data so that each question could be answered well with only one or two figures. This taught me an important lesson about data visualisation: a good visualisation is not just about making more plots, but about choosing the right calculation and the right visual form. In this project, I learned how to use calculations more carefully so that one figure could answer more than one part of a question, which helped me reduce duplicate or repetitive plots and make the report more concise. I also improved a lot in debugging, because the ABS datasets were complicated to clean and combine, and many parts of the analysis needed repeated calculations and custom functions. If I did this project again, I would plan the structure earlier, decide on the final visualisations sooner, and think earlier about how each figure could answer the research question as directly as possible.
+Another challenge was deciding how to calculate and summarise the data so that each question could be answered well with only one or two figures. This taught me an important lesson about data visualisation. A good visualisation is not just about making more plots, but about choosing the right calculation and the most suitable visual form. In this project, I learned to use calculations more carefully so that one figure could answer more than one part of a question, which helped me reduce duplicate or repetitive plots and make the report more concise. I also improved a lot in debugging, because the ABS datasets were complicated to clean and combine, and many parts of the analysis required repeated calculations and custom functions. If I did this project again, I would plan the structure earlier, decide on the final visualisations sooner, and think earlier about how each figure could answer the research question as directly as possible.
 
 \newpage
 
@@ -932,6 +932,42 @@ Zhu H (2024). kableExtra: Construct Complex Table with 'kable' and Pipe Syntax. 
 I mainly used Positron while writing my code, so I relied on its built-in Codex assistant for debugging, coding support, grammar checking, code revision, and some LaTeX writing. I also used Gemini mainly when reading in data, especially for writing functions, and for a few questions that Codex did not answer well.
 
 In my experience, Codex was a very useful support tool. It also helped me improve the presentation of some plots and make them look more polished. Gemini was especially helpful for writing functions, as its code was often more organised and concise than Codex’s. At the same time, I did not rely too heavily on these AI tools, because they sometimes generated unnecessary code or over-processed the analysis. In some cases, this made the plots look more complicated and the code harder to debug. Because of this, I still needed to evaluate their suggestions carefully and decide what was actually useful for my project.
+
+Below are some sample prompts I used during the project.
+
+**Functions**
+
+- Help me turn this time series dataset from wide to long format and join it to the metadata table. I have already added year, month, and financial_year from the date column before pivoting the data into long format, but I also need to add a loan_type argument to the function. Can you help me revise the function?
+
+- I am reading multiple ABS Excel files with similar but not identical structures. Can you help me write a reusable function that reshapes the data from wide to long format, joins it to the metadata, and includes a loan_type argument?
+
+- Please help me simplify this function for reading and tidying time series data. I want it to create year, month, and financial_year, pivot the data to long format, join the metadata table, and keep the code concise.
+
+**Documentation / LaTeX / Grammar**
+
+- Please help me write these equations in proper LaTeX so they can be included in a PDF report.
+
+- Please help me fix the grammar of this paragraph and make it sound more academic but still concise.
+
+**Coding / Debugging**
+
+- Why am I getting this error in R? Can you explain the cause and show me how to fix it?
+
+- I got this error when running my code. Please help me identify what is wrong and suggest a fix.
+
+- This code is not working as expected. Can you help me debug it and explain the problem step by step?
+
+**Revise charts / figure layout**
+
+- I have a map saved as a PDF file called figure/comb_map.pdf in R. I want to display this PDF figure, add a title above it that says “Geographic Gaps Between Investor Lending and Migration Demand Across Australian States”, and combine them into one final plot. Can you help me do this?
+
+- I have a PDF map in R and I want to add a title above it, then combine both into a single final figure for my report. Can you show me how to do this using magick and cowplot?
+
+- I already created a figure by combining a PDF map and a title in R, but the title is too high. How can I move the title lower?
+
+- Can you help me improve the layout of this figure? 
+
+- I want the title and subtitle to sit closer to the figure and look more balanced.
 
 \newpage
 
