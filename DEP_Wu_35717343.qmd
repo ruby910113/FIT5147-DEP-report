@@ -759,7 +759,10 @@ The housing-lending panel is more mixed. Most states are on the negative side of
 #| fig-width: 10
 #| fig-height: 5
 
-ggplot(q2_coef_plot_robust, aes(x = estimate, y = state, colour = state)) +
+q2_coef_plot_robust2 <- q2_coef_plot_robust %>%
+  mutate(state = reorder(state, estimate))
+
+ggplot(q2_coef_plot_robust2, aes(x = estimate, y = state, colour = state)) +
   geom_vline(xintercept = 0, linetype = "dashed", colour = "grey50") +
   geom_errorbar(aes(xmin = conf.low, xmax = conf.high), orientation = "y", width = 0.2, linewidth = 0.7) +
   geom_point(size = 2.8) +
